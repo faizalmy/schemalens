@@ -21,8 +21,9 @@ export default async function ExplorePage({ params }: Props) {
   return (
     <ERDExplorer
       name={schema.name}
+      schemaId={schemaId}
       schema={schema.tablesJson as ParsedSchema}
-      aiDocumentation={schema.aiDocsJson as string | null}
+      aiDocumentation={schema.aiDocsJson as Record<string, string> | null}
     />
   )
 }

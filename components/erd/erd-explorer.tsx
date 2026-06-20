@@ -15,7 +15,7 @@ import {
 import Link from 'next/link'
 import { TableDetailPanel } from './table-detail-panel'
 import { AiDocsPanel } from './ai-docs-panel'
-import type { ParsedSchema } from '@/lib/dummy-data'
+import type { ParsedSchema } from '@/lib/types'
 
 // Dynamically import canvas to avoid SSR issues with ReactFlow
 const ERDCanvas = dynamic(() => import('./erd-canvas').then((m) => ({ default: m.ERDCanvas })), {
@@ -32,11 +32,12 @@ const ERDCanvas = dynamic(() => import('./erd-canvas').then((m) => ({ default: m
 
 interface ERDExplorerProps {
   name: string
+  schemaId: string
   schema: ParsedSchema
-  aiDocumentation: string | null
+  aiDocumentation: Record<string, string> | null
 }
 
-export function ERDExplorer({ name, schema, aiDocumentation }: ERDExplorerProps) {
+export function ERDExplorer({ name, schemaId, schema, aiDocumentation }: ERDExplorerProps) {
   const [selectedTable, setSelectedTable] = useState<string | null>(null)
   const [showDocs, setShowDocs] = useState(false)
   const [sharing, setSharing] = useState(false)
@@ -53,16 +54,21 @@ export function ERDExplorer({ name, schema, aiDocumentation }: ERDExplorerProps)
 
   async function handleShare() {
     setSharing(true)
-    // Frontend-only demo: copy a sample share link.
-    const url = `${window.location.origin}/share/demo-share`
     try {
-      await navigator.clipboard.writeText(url)
-    } catch {
-      // clipboard may be unavailable in the preview iframe — ignore
+      const res = await fetch(`/api/schema/${schemaId}/share`, { method: 'POST' })
+      if (!res.ok) return
+      const data = await res.json()
+      const url = `${window.location.origin}${data.url}`
+      try {
+        await navigator.clipboard.writeText(url)
+      } catch {
+        // clipboard may be unavailable in the preview iframe — ignore
+      }
+      setCopied(true)
+      setTimeout(() => setCopied(false), 3000)
+    } finally {
+      setSharing(false)
     }
-    setCopied(true)
-    setSharing(false)
-    setTimeout(() => setCopied(false), 3000)
   }
 
   return (
@@ -148,6 +154,8 @@ export function ERDExplorer({ name, schema, aiDocumentation }: ERDExplorerProps)
         )}
         {showDocs && (
           <AiDocsPanel
+            schemaId={schemaId}
+            schema={schema}
             existingDocs={aiDocumentation}
             onClose={() => setShowDocs(false)}
           />

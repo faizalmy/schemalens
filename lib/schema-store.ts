@@ -1,4 +1,6 @@
 import { db } from "./db";
+
+export { db };
 import { savedSchemas } from "./db/schema";
 import { eq, desc, sql } from "drizzle-orm";
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { X, Key, Hash } from 'lucide-react'
-import type { ParsedSchema } from '@/lib/dummy-data'
+import type { ParsedSchema } from '@/lib/types'
 
 interface TableDetailPanelProps {
   table: ParsedSchema['tables'][number]
