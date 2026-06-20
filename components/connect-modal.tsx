@@ -35,10 +35,22 @@ export function ConnectModal({ onClose }: ConnectModalProps) {
     }
     setLoading(true)
     setError(null)
-    // Frontend-only demo: simulate a connection then open the sample schema.
-    setTimeout(() => {
-      router.push('/explore/prod-ecommerce')
-    }, 900)
+
+    const connectionString = `postgresql://${form.username}:${form.password}@${form.host}:${form.port}/${form.database}`
+
+    try {
+      const res = await fetch('/api/introspect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ connectionString, name: form.name }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Connection failed')
+      router.push(`/explore/${data.schemaId}`)
+    } catch (err: any) {
+      setError(err.message)
+      setLoading(false)
+    }
   }
 
   return (

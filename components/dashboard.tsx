@@ -1,18 +1,25 @@
 'use client'
 
+'use client'
+
 import { useState } from 'react'
 import { Plus, Database } from 'lucide-react'
 import { SchemaCard } from './schema-card'
 import { ConnectModal } from './connect-modal'
-import type { SchemaMeta } from '@/lib/dummy-data'
+import type { SchemaListItem } from '@/lib/types'
 
 interface DashboardProps {
-  schemas: SchemaMeta[]
+  schemas: SchemaListItem[]
   userName: string
 }
 
-export function Dashboard({ schemas, userName }: DashboardProps) {
+export function Dashboard({ schemas: initialSchemas, userName }: DashboardProps) {
   const [showModal, setShowModal] = useState(false)
+  const [schemas, setSchemas] = useState(initialSchemas)
+
+  function handleDelete(id: string) {
+    setSchemas((prev) => prev.filter((s) => s.id !== id))
+  }
 
   return (
     <main className="max-w-5xl mx-auto px-6 py-10">
@@ -43,11 +50,10 @@ export function Dashboard({ schemas, userName }: DashboardProps) {
               key={s.id}
               id={s.id}
               name={s.name}
-              host={s.host}
-              database={s.database}
               tableCount={s.tableCount}
               relationCount={s.relationCount}
               createdAt={s.createdAt}
+              onDelete={handleDelete}
             />
           ))}
           {/* Add new card */}

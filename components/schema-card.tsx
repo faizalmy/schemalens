@@ -2,36 +2,39 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { Trash2, ExternalLink, Table2, GitBranch, Clock } from 'lucide-react'
+import { Trash2, ExternalLink, Table2, GitBranch, Clock, Loader2 } from 'lucide-react'
 
 interface SchemaCardProps {
   id: string
   name: string
-  host: string
-  database: string
   tableCount: number
   relationCount: number
   createdAt: Date
+  onDelete: (id: string) => void
 }
 
 export function SchemaCard({
   id,
   name,
-  host,
-  database,
   tableCount,
   relationCount,
   createdAt,
+  onDelete,
 }: SchemaCardProps) {
-  const [hidden, setHidden] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
-  function handleDelete(e: React.MouseEvent) {
+  async function handleDelete(e: React.MouseEvent) {
     e.preventDefault()
     if (!confirm('Delete this schema snapshot?')) return
-    setHidden(true)
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/schema/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Delete failed')
+      onDelete(id)
+    } catch {
+      setDeleting(false)
+    }
   }
-
-  if (hidden) return null
 
   const timeAgo = (date: Date) => {
     const secs = Math.floor((Date.now() - new Date(date).getTime()) / 1000)
@@ -51,17 +54,15 @@ export function SchemaCard({
           <h3 className="font-medium text-foreground text-sm truncate group-hover:text-primary transition-colors">
             {name}
           </h3>
-          <p className="text-xs text-muted-foreground mt-0.5 truncate font-mono">
-            {host}/{database}
-          </p>
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <button
             onClick={handleDelete}
-            className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100"
+            disabled={deleting}
+            className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
             aria-label="Delete schema"
           >
-            <Trash2 className="w-3.5 h-3.5" />
+            {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
           </button>
           <ExternalLink className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>

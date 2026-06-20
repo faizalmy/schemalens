@@ -35,3 +35,11 @@ export interface SchemaMeta {
   relationCount: number
   createdAt: Date
 }
+
+export interface SchemaListItem {
+  id: string
+  name: string
+  tableCount: number
+  relationCount: number
+  createdAt: Date
+}
