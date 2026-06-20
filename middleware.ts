@@ -3,17 +3,18 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const SESSION_API = "http://localhost:3000/api/auth/get-session";
 
-const publicRoutes = ["/", "/sign-in", "/sign-up", "/api/auth", "/api/share"];
+const authRoutes = ["/sign-in", "/sign-up"];
 
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow public routes
-  if (publicRoutes.some((route) => pathname.startsWith(route))) {
+  if (pathname.startsWith("/api/") || pathname.startsWith("/_next/") || pathname === "/favicon.ico") {
     return NextResponse.next();
   }
 
-  // Check session for protected routes
+  const isAuthRoute = pathname === "/" || authRoutes.includes(pathname);
+  const isProtectedRoute = !isAuthRoute;
+
   try {
     const { data } = await betterFetch<{ user: { email: string } }>(
       SESSION_API,
@@ -24,11 +25,17 @@ export default async function middleware(request: NextRequest) {
       }
     );
 
-    if (!data) {
+    if (isAuthRoute && data) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+
+    if (isProtectedRoute && !data) {
       return NextResponse.redirect(new URL("/", request.url));
     }
   } catch {
-    return NextResponse.redirect(new URL("/", request.url));
+    if (isProtectedRoute) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
   }
 
   return NextResponse.next();

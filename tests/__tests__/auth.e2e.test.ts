@@ -135,3 +135,45 @@ describe("auth API", () => {
     expect(body).toBeNull();
   });
 });
+
+describe("page redirects", () => {
+  it("/ redirects authenticated user to /dashboard", async () => {
+    const res = await fetch("http://localhost:3000/", {
+      method: "GET",
+      redirect: "manual",
+      headers: { Cookie: sessionTokenCookie },
+    });
+    // Following a redirect
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toBe("/dashboard");
+  });
+
+  it("/sign-in redirects authenticated user to /dashboard", async () => {
+    const res = await fetch("http://localhost:3000/sign-in", {
+      method: "GET",
+      redirect: "manual",
+      headers: { Cookie: sessionTokenCookie },
+    });
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toBe("/dashboard");
+  });
+
+  it("/sign-up redirects authenticated user to /dashboard", async () => {
+    const res = await fetch("http://localhost:3000/sign-up", {
+      method: "GET",
+      redirect: "manual",
+      headers: { Cookie: sessionTokenCookie },
+    });
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toBe("/dashboard");
+  });
+
+  it("/dashboard redirects unauthenticated user to /", async () => {
+    const res = await fetch("http://localhost:3000/dashboard", {
+      method: "GET",
+      redirect: "manual",
+    });
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toBe("/");
+  });
+});
