@@ -29,7 +29,7 @@ export function HeroSection() {
             <ArrowRight className="w-4 h-4" />
           </Link>
           <Link
-            href="/dashboard"
+            href="/demo"
             className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-border text-muted-foreground font-medium hover:text-foreground hover:bg-secondary transition-colors text-sm"
           >
             View demo

@@ -13,7 +13,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <NavBar authed />
+      <NavBar />
       <Dashboard schemas={schemas} userName={session.user.name ?? 'User'} />
     </div>
   )

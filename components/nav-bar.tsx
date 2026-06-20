@@ -1,7 +1,19 @@
+'use client'
+
 import Link from 'next/link'
 import { LogOut, Database } from 'lucide-react'
+import { authClient } from '@/lib/auth-client'
+import { useRouter } from 'next/navigation'
 
-export function NavBar({ authed = false }: { authed?: boolean }) {
+export function NavBar() {
+  const router = useRouter()
+  const { data: session } = authClient.useSession()
+
+  async function handleSignOut() {
+    await authClient.signOut()
+    router.push('/')
+  }
+
   return (
     <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
@@ -13,16 +25,16 @@ export function NavBar({ authed = false }: { authed?: boolean }) {
         </Link>
 
         <nav className="flex items-center gap-3">
-          {authed ? (
+          {session ? (
             <>
-              <span className="text-sm text-muted-foreground hidden sm:block">jane@example.com</span>
-              <Link
-                href="/"
+              <span className="text-sm text-muted-foreground hidden sm:block">{session.user.email}</span>
+              <button
+                onClick={handleSignOut}
                 className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-md hover:bg-secondary"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 <span className="sr-only sm:not-sr-only">Sign out</span>
-              </Link>
+              </button>
             </>
           ) : (
             <>

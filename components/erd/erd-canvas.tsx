@@ -14,7 +14,7 @@ import ReactFlow, {
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import { TableNode, type TableNodeData } from './table-node'
-import type { ParsedSchema } from '@/lib/dummy-data'
+import type { ParsedSchema } from '@/lib/types'
 
 const nodeTypes = { tableNode: TableNode }
 

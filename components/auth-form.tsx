@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Database, Loader2, AlertCircle } from 'lucide-react'
+import { authClient } from '@/lib/auth-client'
 
 interface AuthFormProps {
   mode: 'sign-in' | 'sign-up'
@@ -20,14 +21,32 @@ export function AuthForm({ mode }: AuthFormProps) {
     setError(null)
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError(null)
-    // Frontend-only demo: skip real auth and go straight to the dashboard.
-    setTimeout(() => {
+    try {
+      if (mode === 'sign-in') {
+        const { error: err } = await authClient.signIn.email({
+          email: form.email,
+          password: form.password,
+        })
+        if (err) throw err
+      } else {
+        const { error: err } = await authClient.signUp.email({
+          email: form.email,
+          password: form.password,
+          name: form.name,
+        })
+        if (err) throw err
+      }
       router.push('/dashboard')
-    }, 700)
+    } catch (err: unknown) {
+      const e = err as { message?: string; error?: string }
+      setError(e.message ?? e.error ?? 'Something went wrong')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
