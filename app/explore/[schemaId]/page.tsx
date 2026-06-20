@@ -1,5 +1,9 @@
-import { getDummySchema } from '@/lib/dummy-data'
+import { auth } from '@/lib/auth'
+import { getSchema } from '@/lib/schema-store'
+import { headers } from 'next/headers'
+import { redirect } from 'next/navigation'
 import { ERDExplorer } from '@/components/erd/erd-explorer'
+import type { ParsedSchema } from '@/lib/types'
 
 interface Props {
   params: Promise<{ schemaId: string }>
@@ -7,7 +11,18 @@ interface Props {
 
 export default async function ExplorePage({ params }: Props) {
   const { schemaId } = await params
-  const { meta, schema, aiDocumentation } = getDummySchema(schemaId)
+  const headersList = await headers()
+  const session = await auth.api.getSession({ headers: headersList })
+  if (!session?.user?.id) redirect('/sign-in')
 
-  return <ERDExplorer name={meta.name} schema={schema} aiDocumentation={aiDocumentation} />
+  const schema = await getSchema(schemaId)
+  if (!schema || schema.userId !== session.user.id) redirect('/dashboard')
+
+  return (
+    <ERDExplorer
+      name={schema.name}
+      schema={schema.tablesJson as ParsedSchema}
+      aiDocumentation={schema.aiDocsJson as string | null}
+    />
+  )
 }
