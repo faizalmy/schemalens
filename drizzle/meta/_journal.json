@@ -15,6 +15,13 @@
       "when": 1781920553223,
       "tag": "0001_amazing_alice",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781925606387,
+      "tag": "0002_graceful_tiger_shark",
+      "breakpoints": true
     }
   ]
 }
