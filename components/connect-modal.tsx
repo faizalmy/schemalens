@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { X, Database, Loader2, AlertCircle } from 'lucide-react'
+import { useConnect } from '@/lib/hooks/use-connect'
 
 interface ConnectModalProps {
   onClose: () => void
@@ -10,46 +11,14 @@ interface ConnectModalProps {
 
 export function ConnectModal({ onClose }: ConnectModalProps) {
   const router = useRouter()
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [form, setForm] = useState({
-    name: '',
-    host: '',
-    port: '5432',
-    database: '',
-    username: '',
-    password: '',
-    ssl: true,
-  })
-
-  function update(key: string, value: string | boolean) {
-    setForm((f) => ({ ...f, [key]: value }))
-    setError(null)
-  }
+  const { fields, loading, error, update, submit } = useConnect()
+  const [ssl, setSsl] = useState(true)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!form.name || !form.host || !form.database || !form.username || !form.password) {
-      setError('All fields are required.')
-      return
-    }
-    setLoading(true)
-    setError(null)
-
-    const connectionString = `postgresql://${form.username}:${form.password}@${form.host}:${form.port}/${form.database}`
-
-    try {
-      const res = await fetch('/api/introspect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ connectionString, name: form.name }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Connection failed')
-      router.push(`/explore/${data.schemaId}`)
-    } catch (err: any) {
-      setError(err.message)
-      setLoading(false)
+    const schemaId = await submit()
+    if (schemaId) {
+      router.push(`/explore/${schemaId}`)
     }
   }
 
@@ -82,96 +51,96 @@ export function ConnectModal({ onClose }: ConnectModalProps) {
             </div>
           )}
 
-          <Field label="Connection name" required>
-            <input
-              type="text"
-              placeholder="My Production DB"
-              value={form.name}
-              onChange={(e) => update('name', e.target.value)}
-              className="input-field"
-              disabled={loading}
-            />
-          </Field>
-
-          <div className="grid grid-cols-3 gap-3">
-            <div className="col-span-2">
-              <Field label="Host" required>
-                <input
-                  type="text"
-                  placeholder="my-cluster.cluster-xxx.us-east-1.rds.amazonaws.com"
-                  value={form.host}
-                  onChange={(e) => update('host', e.target.value)}
-                  className="input-field font-mono text-xs"
-                  disabled={loading}
-                />
-              </Field>
-            </div>
-            <Field label="Port">
-              <input
-                type="number"
-                value={form.port}
-                onChange={(e) => update('port', e.target.value)}
-                className="input-field font-mono"
-                disabled={loading}
-              />
-            </Field>
-          </div>
-
-          <Field label="Database" required>
-            <input
-              type="text"
-              placeholder="postgres"
-              value={form.database}
-              onChange={(e) => update('database', e.target.value)}
-              className="input-field font-mono"
-              disabled={loading}
-            />
-          </Field>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Username" required>
+              <Field label="Connection name" required>
               <input
                 type="text"
-                placeholder="postgres"
-                value={form.username}
-                onChange={(e) => update('username', e.target.value)}
-                className="input-field font-mono"
-                disabled={loading}
-              />
-            </Field>
-            <Field label="Password" required>
-              <input
-                type="password"
-                placeholder="••••••••"
-                value={form.password}
-                onChange={(e) => update('password', e.target.value)}
+                placeholder="My Production DB"
+                value={fields.name}
+                onChange={(e) => update('name', e.target.value)}
                 className="input-field"
                 disabled={loading}
               />
             </Field>
-          </div>
 
-          <label className="flex items-center gap-2.5 cursor-pointer group">
-            <div className="relative">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-2">
+                <Field label="Host" required>
+                  <input
+                    type="text"
+                    placeholder="my-cluster.cluster-xxx.us-east-1.rds.amazonaws.com"
+                    value={fields.host}
+                    onChange={(e) => update('host', e.target.value)}
+                    className="input-field font-mono text-xs"
+                    disabled={loading}
+                  />
+                </Field>
+              </div>
+              <Field label="Port">
+                <input
+                  type="number"
+                  value={fields.port}
+                  onChange={(e) => update('port', e.target.value)}
+                  className="input-field font-mono"
+                  disabled={loading}
+                />
+              </Field>
+            </div>
+
+            <Field label="Database" required>
               <input
-                type="checkbox"
-                checked={form.ssl}
-                onChange={(e) => update('ssl', e.target.checked)}
-                className="sr-only"
+                type="text"
+                placeholder="postgres"
+                value={fields.database}
+                onChange={(e) => update('database', e.target.value)}
+                className="input-field font-mono"
                 disabled={loading}
               />
-              <div
-                className={`w-9 h-5 rounded-full transition-colors ${form.ssl ? 'bg-primary' : 'bg-secondary'}`}
-              >
-                <div
-                  className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${form.ssl ? 'translate-x-4' : 'translate-x-0'}`}
+            </Field>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Username" required>
+                <input
+                  type="text"
+                  placeholder="postgres"
+                  value={fields.username}
+                  onChange={(e) => update('username', e.target.value)}
+                  className="input-field font-mono"
+                  disabled={loading}
                 />
-              </div>
+              </Field>
+              <Field label="Password" required>
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  value={fields.password}
+                  onChange={(e) => update('password', e.target.value)}
+                  className="input-field"
+                  disabled={loading}
+                />
+              </Field>
             </div>
-            <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
-              Enable SSL / TLS
-            </span>
-          </label>
+
+            <label className="flex items-center gap-2.5 cursor-pointer group">
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={ssl}
+                  onChange={(e) => setSsl(e.target.checked)}
+                  className="sr-only"
+                  disabled={loading}
+                />
+                <div
+                  className={`w-9 h-5 rounded-full transition-colors ${ssl ? 'bg-primary' : 'bg-secondary'}`}
+                >
+                  <div
+                    className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${ssl ? 'translate-x-4' : 'translate-x-0'}`}
+                  />
+                </div>
+              </div>
+              <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
+                Enable SSL / TLS
+              </span>
+            </label>
 
           <div className="flex items-center gap-3 pt-2">
             <button

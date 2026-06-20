@@ -193,7 +193,7 @@ This database powers a typical online storefront. It is organized around custome
 
 The \`order_items\` table is the join between \`orders\` and \`products\`, forming a many-to-many bridge. Both \`reviews\` and \`orders\` reference \`users\`, making it the most connected table in the schema.`
 
-export const dummySchemas: SchemaMeta[] = [
+const dummySchemas: SchemaMeta[] = [
   {
     id: 'prod-ecommerce',
     name: 'Production — Storefront',
@@ -233,4 +233,4 @@ export function getDummySchema(id: string): FullSchema {
 }
 
 // Used by the AI Docs panel to fake a generation result.
-export const sampleGeneratedDocs = ecommerceDocs
+const sampleGeneratedDocs = ecommerceDocs

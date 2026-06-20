@@ -22,7 +22,9 @@ export const auth = betterAuth({
     enabled: true,
     autoSignIn: true,
     async sendResetPassword(url) {
-      // TODO: implement email sending for production
+      // Stub: better-auth requires this callback. Implement email sending for production.
+      // eslint-disable-next-line no-console
+      console.log("[sendResetPassword]", url);
     },
   },
 });

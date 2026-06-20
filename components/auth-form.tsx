@@ -1,52 +1,19 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { Database, Loader2, AlertCircle } from 'lucide-react'
-import { authClient } from '@/lib/auth-client'
+import { useAuth } from '@/lib/hooks/use-auth'
 
 interface AuthFormProps {
   mode: 'sign-in' | 'sign-up'
 }
 
 export function AuthForm({ mode }: AuthFormProps) {
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [form, setForm] = useState({ name: '', email: '', password: '' })
-
-  function update(key: string, value: string) {
-    setForm((f) => ({ ...f, [key]: value }))
-    setError(null)
-  }
+  const { fields, loading, error, update, submit } = useAuth(mode)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true)
-    setError(null)
-    try {
-      if (mode === 'sign-in') {
-        const { error: err } = await authClient.signIn.email({
-          email: form.email,
-          password: form.password,
-        })
-        if (err) throw err
-      } else {
-        const { error: err } = await authClient.signUp.email({
-          email: form.email,
-          password: form.password,
-          name: form.name,
-        })
-        if (err) throw err
-      }
-      router.push('/dashboard')
-    } catch (err: unknown) {
-      const e = err as { message?: string; error?: string }
-      setError(e.message ?? e.error ?? 'Something went wrong')
-    } finally {
-      setLoading(false)
-    }
+    await submit()
   }
 
   return (
@@ -101,7 +68,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                   type="text"
                   autoComplete="name"
                   placeholder="Jane Smith"
-                  value={form.name}
+                  value={fields.name}
                   onChange={(e) => update('name', e.target.value)}
                   required
                   disabled={loading}
@@ -119,7 +86,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                 type="email"
                 autoComplete="email"
                 placeholder="jane@example.com"
-                value={form.email}
+                value={fields.email}
                 onChange={(e) => update('email', e.target.value)}
                 required
                 disabled={loading}
@@ -136,7 +103,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                 type="password"
                 autoComplete={mode === 'sign-up' ? 'new-password' : 'current-password'}
                 placeholder="••••••••"
-                value={form.password}
+                value={fields.password}
                 onChange={(e) => update('password', e.target.value)}
                 required
                 minLength={8}
