@@ -8,7 +8,7 @@ export function HeroSection() {
       <section className="w-full max-w-4xl mx-auto px-6 pt-24 pb-16 text-center">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/30 bg-primary/5 text-primary text-xs font-medium mb-8">
           <Sparkles className="w-3 h-3" />
-          Aurora PostgreSQL + AI Documentation
+          PostgreSQL + AI Documentation
         </div>
 
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground text-balance mb-6">
@@ -16,7 +16,7 @@ export function HeroSection() {
           <span className="text-primary">visually</span>
         </h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed text-pretty mb-10">
-          Connect your AWS Aurora PostgreSQL database and get an instant, interactive
+          Connect your PostgreSQL database and get an instant, interactive
           entity-relationship diagram with AI-generated documentation — no setup required.
         </p>
 
@@ -43,7 +43,7 @@ export function HeroSection() {
           <FeatureCard
             icon={<Database className="w-5 h-5 text-primary" />}
             title="Instant ERD diagrams"
-            description="Introspect your Aurora PostgreSQL schema and render a fully interactive entity-relationship diagram in seconds."
+            description="Introspect your PostgreSQL schema and render a fully interactive entity-relationship diagram in seconds."
           />
           <FeatureCard
             icon={<GitBranch className="w-5 h-5 text-primary" />}

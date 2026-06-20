@@ -12,8 +12,8 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: 'SchemaLens — Interactive Database Schema Explorer',
   description:
-    'Connect your AWS Aurora PostgreSQL database and get an instant, interactive entity-relationship diagram with AI-generated documentation.',
-  keywords: ['database', 'schema', 'ERD', 'Aurora PostgreSQL', 'AWS', 'entity relationship'],
+    'Connect your PostgreSQL database and get an instant, interactive entity-relationship diagram with AI-generated documentation.',
+  keywords: ['database', 'schema', 'ERD', 'PostgreSQL', 'entity relationship'],
   generator: 'v0.app',
 }
 
