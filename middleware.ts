@@ -1,7 +1,7 @@
 import { betterFetch } from "@better-fetch/fetch";
 import { NextResponse, type NextRequest } from "next/server";
 
-const SESSION_API = "http://localhost:3000/api/auth/get-session";
+const SESSION_API_PATH = "/api/auth/get-session";
 
 const authRoutes = ["/sign-in", "/sign-up"];
 
@@ -16,6 +16,7 @@ export default async function middleware(request: NextRequest) {
   const isProtectedRoute = !isAuthRoute;
 
   try {
+    const SESSION_API = `${request.nextUrl.origin}${SESSION_API_PATH}`;
     const { data } = await betterFetch<{ user: { email: string } }>(
       SESSION_API,
       {
