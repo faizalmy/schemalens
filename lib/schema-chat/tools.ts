@@ -5,15 +5,55 @@ import type { ExecuteSqlOutput, CheckSqlOutput } from "./types";
 import { MAX_ROWS, QUERY_TIMEOUT_MS } from "./types";
 
 /**
- * Check if a SQL query is read-only (safe).
- * Blocks: INSERT, UPDATE, DELETE, DROP, ALTER, TRUNCATE, CREATE, GRANT, REVOKE
+ * Hard block: checks if a query is read-only.
+ *
+ * Two layers:
+ *   1. Regex — block known destructive keywords
+ *   2. Multi-statement — block semicolons outside string literals
  */
 function isReadOnly(query: string): boolean {
-  const normalized = query.trim().toUpperCase();
-  // Allow only SELECT, WITH (CTE), EXPLAIN, SET, SHOW
+  const trimmed = query.trim();
+  if (!trimmed) return false;
+
+  // Strip string contents to avoid false positives on semicolons in strings
+  const stripped = trimmed
+    .replace(/'[^']*'/g, "")
+    .replace(/"[^"]*"/g, "")
+    .replace(/\$\$[\s\S]*?\$\$/g, "")
+    .replace(/E'[^']*'/g, "");
+
+  // Block multi-statement queries (more than one semicolon = injection risk)
+  const semiCount = (stripped.match(/;/g) || []).length;
+  if (semiCount > 1) {
+    return false;
+  }
+
+  // Only allow SELECT or WITH as statement prefixes
+  const normalized = trimmed.toUpperCase().trimStart();
+  const isAllowedPrefix =
+    normalized.startsWith("SELECT") ||
+    normalized.startsWith("WITH") ||
+    normalized.startsWith("EXPLAIN") ||
+    normalized.startsWith("SHOW");
+
+  if (!isAllowedPrefix) {
+    return false;
+  }
+
+  // Block destructive keywords anywhere in the query
   const unsafePattern =
-    /\b(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE|GRANT|REVOKE)\b/i;
-  return !unsafePattern.test(normalized);
+    /\b(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE|GRANT|REVOKE|EXECUTE|CALL|MERGE|COPY|REINDEX|VACUUM|CLUSTER|REFRESH|SECURITY|SET\s+ROLE|SET\s+SESSION\s+AUTHORIZATION|LISTEN|NOTIFY)\b/i;
+
+  if (unsafePattern.test(trimmed)) {
+    return false;
+  }
+
+  // Block EXPLAIN ANALYZE (which actually executes the plan)
+  if (/EXPLAIN\s+ANALYZE\s+(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE)/i.test(trimmed)) {
+    return false;
+  }
+
+  return true;
 }
 
 /**
@@ -32,14 +72,12 @@ export const generateSqlTool = tool({
       .describe("Brief explanation of what this query does"),
   }),
   execute: async ({ query }) => {
-    // Basic validation: must contain SELECT or WITH
-    const normalized = query.trim().toUpperCase();
-    if (!normalized.startsWith("SELECT") && !normalized.startsWith("WITH") && !normalized.startsWith("EXPLAIN") && !normalized.startsWith("SET") && !normalized.startsWith("SHOW")) {
+    if (!isReadOnly(query)) {
       return {
         query,
         valid: false,
         warning:
-          "Query doesn't start with SELECT or WITH — may not be a valid data query",
+          "Query contains destructive operations — only SELECT and WITH queries are allowed",
       };
     }
     return { query, valid: true };
@@ -58,30 +96,49 @@ export const checkSqlTool = tool({
   }),
   execute: async ({ query }): Promise<CheckSqlOutput> => {
     const readOnlyCheck = isReadOnly(query);
+    const checks = [
+      {
+        pass: readOnlyCheck,
+        message: readOnlyCheck
+          ? "Query is read-only"
+          : "Query contains destructive operations — rejected",
+      },
+      {
+        pass: query.length < 5000,
+        message:
+          query.length < 5000
+            ? "Query length OK"
+            : "Query exceeds 5000 character limit",
+      },
+    ];
+
+    // Multi-statement check
+    const stripped = query
+      .replace(/'[^']*'/g, "")
+      .replace(/"[^"]*"/g, "");
+    const semiCount = (stripped.match(/;/g) || []).length;
+    checks.push({
+      pass: semiCount <= 1,
+      message:
+        semiCount <= 1
+          ? "Single-statement query"
+          : `Multiple statements detected (${semiCount} semicolons) — injection risk`,
+    });
+
     return {
-      safe: readOnlyCheck,
-      checks: [
-        {
-          pass: readOnlyCheck,
-          message: readOnlyCheck
-            ? "Query is read-only"
-            : "Query contains destructive operations (INSERT/UPDATE/DELETE/DROP/ALTER)",
-        },
-        {
-          pass: query.length < 5000,
-          message:
-            query.length < 5000
-              ? "Query length OK"
-              : "Query exceeds 5000 character limit",
-        },
-      ],
+      safe: checks.every((c) => c.pass),
+      checks,
     };
   },
 });
 
 /**
  * execute_sql tool definition.
- * Runs the validated SQL query against the user's database connection.
+ * Runs the validated SQL query against the user's database.
+ * Enforces read-only at TWO levels:
+ *   1. Application-level regex check (above)
+ *   2. PostgreSQL session-level read-only (SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY)
+ *      — this is the HARD BLOCK that PostgreSQL itself enforces.
  */
 export const executeSqlTool = (getConnectionString: () => string) =>
   tool({
@@ -90,10 +147,15 @@ export const executeSqlTool = (getConnectionString: () => string) =>
     inputSchema: z.object({
       query: z.string().min(1).max(5000),
     }),
-    execute: async ({ query }): Promise<ExecuteSqlOutput | { error: string }> => {
-      // Safety check (double-check)
+    execute: async ({
+      query,
+    }): Promise<ExecuteSqlOutput | { error: string }> => {
+      // LAYER 1: Application-level check
       if (!isReadOnly(query)) {
-        return { error: "Destructive queries are not allowed" };
+        return {
+          error:
+            "HARD BLOCK: Destructive queries are not allowed. Only SELECT and WITH queries can be executed.",
+        };
       }
 
       let pool: Pool | null = null;
@@ -111,8 +173,18 @@ export const executeSqlTool = (getConnectionString: () => string) =>
           statement_timeout: QUERY_TIMEOUT_MS,
         });
 
-        // Set statement timeout for this session
-        await pool.query(`SET statement_timeout = '${QUERY_TIMEOUT_MS}ms'`);
+        // LAYER 2: PostgreSQL session-level read-only (HARD BLOCK)
+        // Sets the default for all subsequent transactions in this session
+        // PostgreSQL will reject ANY write attempt at the database level,
+        // regardless of what the application-level regex might miss.
+        await pool.query(
+          "SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY",
+        );
+
+        // Also set statement timeout
+        await pool.query(
+          `SET statement_timeout = '${QUERY_TIMEOUT_MS}ms'`,
+        );
 
         const result = await pool.query({
           text: query,
@@ -122,7 +194,6 @@ export const executeSqlTool = (getConnectionString: () => string) =>
         const columns =
           result.fields?.map((f) => ({
             name: f.name,
-            // Map type OID to readable name
             type: f.dataTypeID.toString(),
           })) || [];
 
@@ -136,9 +207,21 @@ export const executeSqlTool = (getConnectionString: () => string) =>
           truncated: totalRowCount > MAX_ROWS,
         };
       } catch (err: any) {
-        // Return error info so the agent can retry
+        // Distinguish PG read-only violation from other errors
         const message =
           err.message?.replace(/^error:\s*/i, "") || "Query execution failed";
+
+        // If PostgreSQL rejected the write, return a clear error
+        if (
+          err.message?.includes("read-only transaction") ||
+          err.code === "25006"
+        ) {
+          return {
+            error:
+              "HARD BLOCK (PostgreSQL): Cannot execute write in a read-only transaction.",
+          };
+        }
+
         return { error: message };
       } finally {
         if (pool) {
