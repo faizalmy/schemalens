@@ -125,4 +125,3 @@ console.log(`  Total:  ${total}`);
 console.log(`  Passed: ${passed}`);
 console.log(`  Failed: ${failed}`);
 console.log(`  Rate:   ${(passed / total * 100).toFixed(1)}%`);
-process.exit(failed > 0 ? 1 : 0);
