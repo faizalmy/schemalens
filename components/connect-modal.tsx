@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, Database, Loader2, AlertCircle, Link2, ChevronDown, ChevronUp } from 'lucide-react'
+import { X, Database, Loader2, AlertCircle, Settings2, ChevronDown, ChevronUp } from 'lucide-react'
 import { useConnect } from '@/lib/hooks/use-connect'
 
 interface ConnectModalProps {
@@ -13,7 +13,7 @@ export function ConnectModal({ onClose }: ConnectModalProps) {
   const router = useRouter()
   const { fields, loading, error, update, submit, fillFromUrl } = useConnect()
   const [ssl, setSsl] = useState(true)
-  const [showUrlInput, setShowUrlInput] = useState(false)
+  const [showManual, setShowManual] = useState(false)
   const urlInputRef = useRef<HTMLInputElement>(null)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -23,26 +23,6 @@ export function ConnectModal({ onClose }: ConnectModalProps) {
       router.push(`/explore/${schemaId}`)
     }
   }
-
-  const handleUrlChange = useCallback(
-    (value: string) => {
-      fillFromUrl(value)
-    },
-    [fillFromUrl],
-  )
-
-  const handleUrlPaste = useCallback(
-    (e: React.ClipboardEvent<HTMLInputElement>) => {
-      // Let the onChange handler process the pasted value
-      // but mark that we should transition
-      setTimeout(() => {
-        if (fields.connectionString && fields.host !== 'localhost') {
-          setShowUrlInput(false)
-        }
-      }, 0)
-    },
-    [fields.connectionString, fields.host],
-  )
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -73,56 +53,19 @@ export function ConnectModal({ onClose }: ConnectModalProps) {
             </div>
           )}
 
-          {/* Paste connection string toggle */}
-          <button
-            type="button"
-            onClick={() => {
-              setShowUrlInput(!showUrlInput)
-              if (!showUrlInput) {
-                setTimeout(() => urlInputRef.current?.focus(), 100)
-              }
-            }}
-            className="flex items-center gap-2 w-full p-3 rounded-md border border-border hover:bg-secondary transition-colors text-left"
-          >
-            <Link2 className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium text-foreground flex-1">
-              Paste connection string
-            </span>
-            {showUrlInput ? (
-              <ChevronUp className="w-4 h-4 text-muted-foreground" />
-            ) : (
-              <ChevronDown className="w-4 h-4 text-muted-foreground" />
-            )}
-          </button>
-
-          {showUrlInput && (
-            <div className="animate-in slide-in-from-top-1 fade-in duration-150">
-              <Field label="Connection string">
-                <input
-                  ref={urlInputRef}
-                  type="text"
-                  placeholder="postgresql://user:password@host:5432/database"
-                  value={fields.connectionString}
-                  onChange={(e) => handleUrlChange(e.target.value)}
-                  onPaste={handleUrlPaste}
-                  className="input-field font-mono text-xs"
-                  disabled={loading}
-                />
-              </Field>
-            </div>
-          )}
-
-          {/* Divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center">
-              <span className="bg-card px-2 text-xs text-muted-foreground">
-                or enter details manually
-              </span>
-            </div>
-          </div>
+          {/* Connection string — default, always visible */}
+          <Field label="Connection string" hint="Paste a full PostgreSQL URL to auto-fill all fields">
+            <input
+              ref={urlInputRef}
+              type="text"
+              placeholder="postgresql://user:password@host:5432/database"
+              value={fields.connectionString}
+              onChange={(e) => fillFromUrl(e.target.value)}
+              className="input-field font-mono text-xs"
+              disabled={loading}
+              autoFocus
+            />
+          </Field>
 
           {/* Connection name */}
           <Field label="Connection name" required>
@@ -136,66 +79,87 @@ export function ConnectModal({ onClose }: ConnectModalProps) {
             />
           </Field>
 
-          {/* Host + Port */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="col-span-2">
-              <Field label="Host" required>
+          {/* Manual details collapse */}
+          <button
+            type="button"
+            onClick={() => setShowManual(!showManual)}
+            className="flex items-center gap-2 w-full p-3 rounded-md border border-border hover:bg-secondary transition-colors text-left"
+          >
+            <Settings2 className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm font-medium text-foreground flex-1">
+              Enter details manually
+            </span>
+            {showManual ? (
+              <ChevronUp className="w-4 h-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            )}
+          </button>
+
+          {showManual && (
+            <div className="space-y-4 animate-in slide-in-from-top-1 fade-in duration-150">
+              {/* Host + Port */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2">
+                  <Field label="Host" required>
+                    <input
+                      type="text"
+                      placeholder="my-cluster.cluster-xxx.us-east-1.rds.amazonaws.com"
+                      value={fields.host}
+                      onChange={(e) => update('host', e.target.value)}
+                      className="input-field font-mono text-xs"
+                      disabled={loading}
+                    />
+                  </Field>
+                </div>
+                <Field label="Port">
+                  <input
+                    type="number"
+                    value={fields.port}
+                    onChange={(e) => update('port', e.target.value)}
+                    className="input-field font-mono"
+                    disabled={loading}
+                  />
+                </Field>
+              </div>
+
+              {/* Database */}
+              <Field label="Database" required>
                 <input
                   type="text"
-                  placeholder="my-cluster.cluster-xxx.us-east-1.rds.amazonaws.com"
-                  value={fields.host}
-                  onChange={(e) => update('host', e.target.value)}
-                  className="input-field font-mono text-xs"
+                  placeholder="postgres"
+                  value={fields.database}
+                  onChange={(e) => update('database', e.target.value)}
+                  className="input-field font-mono"
                   disabled={loading}
                 />
               </Field>
+
+              {/* Username + Password */}
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Username" required>
+                  <input
+                    type="text"
+                    placeholder="postgres"
+                    value={fields.username}
+                    onChange={(e) => update('username', e.target.value)}
+                    className="input-field font-mono"
+                    disabled={loading}
+                  />
+                </Field>
+                <Field label="Password" required>
+                  <input
+                    type="password"
+                    placeholder="••••••••"
+                    value={fields.password}
+                    onChange={(e) => update('password', e.target.value)}
+                    className="input-field"
+                    disabled={loading}
+                  />
+                </Field>
+              </div>
             </div>
-            <Field label="Port">
-              <input
-                type="number"
-                value={fields.port}
-                onChange={(e) => update('port', e.target.value)}
-                className="input-field font-mono"
-                disabled={loading}
-              />
-            </Field>
-          </div>
-
-          {/* Database */}
-          <Field label="Database" required>
-            <input
-              type="text"
-              placeholder="postgres"
-              value={fields.database}
-              onChange={(e) => update('database', e.target.value)}
-              className="input-field font-mono"
-              disabled={loading}
-            />
-          </Field>
-
-          {/* Username + Password */}
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Username" required>
-              <input
-                type="text"
-                placeholder="postgres"
-                value={fields.username}
-                onChange={(e) => update('username', e.target.value)}
-                className="input-field font-mono"
-                disabled={loading}
-              />
-            </Field>
-            <Field label="Password" required>
-              <input
-                type="password"
-                placeholder="••••••••"
-                value={fields.password}
-                onChange={(e) => update('password', e.target.value)}
-                className="input-field"
-                disabled={loading}
-              />
-            </Field>
-          </div>
+          )}
 
           {/* SSL toggle */}
           <label className="flex items-center gap-2.5 cursor-pointer group">
@@ -286,18 +250,23 @@ export function ConnectModal({ onClose }: ConnectModalProps) {
 function Field({
   label,
   required,
+  hint,
   children,
 }: {
   label: string
   required?: boolean
+  hint?: string
   children: React.ReactNode
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-xs font-medium text-muted-foreground">
-        {label}
-        {required && <span className="text-destructive ml-0.5">*</span>}
-      </label>
+      <div className="flex items-baseline gap-2">
+        <label className="text-xs font-medium text-muted-foreground">
+          {label}
+          {required && <span className="text-destructive ml-0.5">*</span>}
+        </label>
+        {hint && <span className="text-xs text-muted-foreground/60">{hint}</span>}
+      </div>
       {children}
     </div>
   )
