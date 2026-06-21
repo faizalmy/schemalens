@@ -5,6 +5,7 @@ import { ChatToolCallCard } from './chat-tool-call'
 import { ChatResultTable } from './chat-result-table'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { BrainCircuit } from 'lucide-react'
 
 interface ToolCallData {
   id: string
@@ -51,6 +52,21 @@ export function ChatMessage({
   return (
     <div className="flex justify-start px-3">
       <div className="max-w-[90%] flex flex-col gap-2">
+        {/* Thinking indicator — shown when streaming but no data yet */}
+        {isStreaming && !reasoning && (!toolCalls || toolCalls.length === 0) && !content && (
+          <div className="rounded-lg bg-secondary/40 border border-border px-3 py-2.5">
+            <div className="flex items-center gap-2">
+              <BrainCircuit className="w-4 h-4 text-primary animate-pulse" />
+              <span className="text-xs text-muted-foreground">Thinking</span>
+              <span className="flex gap-0.5">
+                <span className="w-1 h-1 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1 h-1 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1 h-1 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: '300ms' }} />
+              </span>
+            </div>
+          </div>
+        )}
+
         {reasoning && (
           <ChatReasoningBlock content={reasoning} isLatest={isStreaming} />
         )}
