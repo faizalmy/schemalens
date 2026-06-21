@@ -110,3 +110,55 @@ export const savedSchemasRelations = relations(savedSchemas, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+export const chatConversations = pgTable("chat_conversations", {
+  id: text()
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: text()
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  schemaId: text()
+    .notNull()
+    .references(() => savedSchemas.id, { onDelete: "cascade" }),
+  title: text().notNull().default("New Chat"),
+  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+});
+
+export const chatMessages = pgTable("chat_messages", {
+  id: text()
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  conversationId: text()
+    .notNull()
+    .references(() => chatConversations.id, { onDelete: "cascade" }),
+  role: text().notNull(), // 'user' | 'assistant'
+  content: text().notNull().default(""),
+  toolCalls: jsonb(),
+  reasoning: text(),
+  resultTable: jsonb(),
+  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+});
+
+export const chatConversationsRelations = relations(
+  chatConversations,
+  ({ one, many }) => ({
+    user: one(users, {
+      fields: [chatConversations.userId],
+      references: [users.id],
+    }),
+    schema: one(savedSchemas, {
+      fields: [chatConversations.schemaId],
+      references: [savedSchemas.id],
+    }),
+    messages: many(chatMessages),
+  }),
+);
+
+export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
+  conversation: one(chatConversations, {
+    fields: [chatMessages.conversationId],
+    references: [chatConversations.id],
+  }),
+}));
