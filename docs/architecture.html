@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SchemaLens — Architecture Diagram</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#020617; font-family:'JetBrains Mono',monospace; color:#e2e8f0; min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:40px 20px; }
+.container { max-width:1200px; width:100%; }
+.header { text-align:center; margin-bottom:32px; }
+.header h1 { font-size:24px; font-weight:600; color:#f1f5f9; }
+.header .subtitle { font-size:11px; color:#64748b; margin-top:6px; }
+.header .dot { display:inline-block; width:8px; height:8px; background:#22d3ee; border-radius:50%; margin-right:10px; animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+.diagram-card { background:#0f172a; border:1px solid #1e293b; border-radius:12px; padding:32px; overflow-x:auto; }
+svg { display:block; margin:0 auto; max-width:1100px; }
+.card-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:24px; }
+.card { background:#0f172a; border:1px solid #1e293b; border-radius:10px; padding:18px; }
+.card-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+.card-dot { width:6px; height:6px; border-radius:50%; }
+.card-dot.cyan { background:#22d3ee; }
+.card-dot.emerald { background:#34d399; }
+.card-dot.violet { background:#a78bfa; }
+.card h3 { font-size:11px; font-weight:600; color:#e2e8f0; text-transform:uppercase; letter-spacing:.5px; }
+.card ul { list-style:none; }
+.card li { font-size:10px; color:#94a3b8; padding:2px 0; }
+.footer { text-align:center; margin-top:20px; font-size:9px; color:#475569; }
+p.note { font-size:10px; color:#64748b; margin-top:16px; text-align:center; }
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+  <h1><span class="dot"></span>SchemaLens — Architecture</h1>
+  <p class="subtitle">H0: Hack the Zero Stack · Track 4: Open Innovation</p>
+</div>
+
+<div class="diagram-card">
+<svg viewBox="0 0 1060 780" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+    </pattern>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 Z" fill="#22d3ee"/>
+    </marker>
+    <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 Z" fill="#34d399"/>
+    </marker>
+    <marker id="arrow-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 Z" fill="#fbbf24"/>
+    </marker>
+    <marker id="arrow-violet" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 Z" fill="#a78bfa"/>
+    </marker>
+    <marker id="arrow-slate" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 Z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+  <rect width="1060" height="780" fill="url(#grid)"/>
+
+  <!-- ===== BOUNDARIES ===== -->
+  <rect x="30" y="60" width="460" height="680" rx="12" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="8,4" opacity="0.4"/>
+  <text x="50" y="82" fill="#fbbf24" font-size="10" font-weight="600" opacity="0.8">Vercel — Edge Network</text>
+
+  <rect x="520" y="140" width="510" height="400" rx="12" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="8,4" opacity="0.4"/>
+  <text x="540" y="162" fill="#fbbf24" font-size="10" font-weight="600" opacity="0.8">AWS Cloud (us-east-1)</text>
+
+  <rect x="520" y="560" width="510" height="170" rx="12" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.4"/>
+  <text x="540" y="582" fill="#94a3b8" font-size="10" font-weight="600" opacity="0.8">External Services</text>
+
+  <!-- ===== USER ===== -->
+  <rect x="150" y="90" width="220" height="80" rx="8" fill="#0f172a"/>
+  <rect x="150" y="90" width="220" height="80" rx="8" fill="rgba(76,29,149,0.3)" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="260" y="128" fill="#f1f5f9" font-size="13" font-weight="500" text-anchor="middle">User Browser</text>
+  <text x="260" y="148" fill="#94a3b8" font-size="9" text-anchor="middle">Desktop / Mobile</text>
+
+  <!-- ===== FRONTEND PAGES ===== -->
+  <rect x="60" y="220" width="400" height="38" rx="6" fill="#083344" stroke="#22d3ee" stroke-width="1.2"/>
+  <text x="260" y="245" fill="#22d3ee" font-size="10" font-weight="500" text-anchor="middle">Frontend Pages (Next.js App Router)</text>
+
+  <rect x="60" y="270" width="120" height="50" rx="6" fill="#0f172a"/>
+  <rect x="60" y="270" width="120" height="50" rx="6" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.2"/>
+  <text x="120" y="295" fill="#e2e8f0" font-size="9" text-anchor="middle">Landing</text>
+  <text x="120" y="308" fill="#64748b" font-size="7" text-anchor="middle">/ (static)</text>
+
+  <rect x="195" y="270" width="120" height="50" rx="6" fill="#0f172a"/>
+  <rect x="195" y="270" width="120" height="50" rx="6" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.2"/>
+  <text x="255" y="295" fill="#e2e8f0" font-size="9" text-anchor="middle">Auth</text>
+  <text x="255" y="308" fill="#64748b" font-size="7" text-anchor="middle">/sign-in · /sign-up</text>
+
+  <rect x="330" y="270" width="130" height="50" rx="6" fill="#0f172a"/>
+  <rect x="330" y="270" width="130" height="50" rx="6" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.2"/>
+  <text x="395" y="295" fill="#e2e8f0" font-size="9" text-anchor="middle">Dashboard</text>
+  <text x="395" y="308" fill="#64748b" font-size="7" text-anchor="middle">/dashboard</text>
+
+  <rect x="60" y="335" width="145" height="50" rx="6" fill="#0f172a"/>
+  <rect x="60" y="335" width="145" height="50" rx="6" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.2"/>
+  <text x="132" y="360" fill="#e2e8f0" font-size="9" text-anchor="middle">Connect DB</text>
+  <text x="132" y="373" fill="#64748b" font-size="7" text-anchor="middle">Connection modal</text>
+
+  <rect x="220" y="335" width="150" height="50" rx="6" fill="#0f172a"/>
+  <rect x="220" y="335" width="150" height="50" rx="6" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.2"/>
+  <text x="295" y="360" fill="#e2e8f0" font-size="9" text-anchor="middle">ERD Explorer</text>
+  <text x="295" y="373" fill="#64748b" font-size="7" text-anchor="middle">/explore/[schemaId]</text>
+
+  <rect x="385" y="335" width="105" height="50" rx="6" fill="#0f172a"/>
+  <rect x="385" y="335" width="105" height="50" rx="6" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.2"/>
+  <text x="437" y="360" fill="#e2e8f0" font-size="9" text-anchor="middle">Share</text>
+  <text x="437" y="373" fill="#64748b" font-size="7" text-anchor="middle">/share/[token]</text>
+
+  <!-- ===== API ROUTES ===== -->
+  <rect x="60" y="420" width="400" height="38" rx="6" fill="#064e3b" stroke="#34d399" stroke-width="1.2"/>
+  <text x="260" y="445" fill="#34d399" font-size="10" font-weight="500" text-anchor="middle">API Routes (Serverless Lambda)</text>
+
+  <rect x="60" y="470" width="185" height="44" rx="6" fill="#0f172a"/>
+  <rect x="60" y="470" width="185" height="44" rx="6" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.2"/>
+  <text x="152" y="491" fill="#e2e8f0" font-size="9" text-anchor="middle">Auth API</text>
+  <text x="152" y="503" fill="#64748b" font-size="7" text-anchor="middle">better-auth · /api/auth/[...]</text>
+
+  <rect x="260" y="470" width="200" height="44" rx="6" fill="#0f172a"/>
+  <rect x="260" y="470" width="200" height="44" rx="6" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.2"/>
+  <text x="360" y="491" fill="#e2e8f0" font-size="9" text-anchor="middle">Introspection</text>
+  <text x="360" y="503" fill="#64748b" font-size="7" text-anchor="middle">/api/introspect</text>
+
+  <rect x="60" y="525" width="185" height="44" rx="6" fill="#0f172a"/>
+  <rect x="60" y="525" width="185" height="44" rx="6" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.2"/>
+  <text x="152" y="546" fill="#e2e8f0" font-size="9" text-anchor="middle">Schema CRUD</text>
+  <text x="152" y="558" fill="#64748b" font-size="7" text-anchor="middle">/api/schemas · /api/schema/[id]</text>
+
+  <rect x="260" y="525" width="200" height="44" rx="6" fill="#0f172a"/>
+  <rect x="260" y="525" width="200" height="44" rx="6" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.2"/>
+  <text x="360" y="546" fill="#e2e8f0" font-size="9" text-anchor="middle">AI Docs · Share</text>
+  <text x="360" y="558" fill="#64748b" font-size="7" text-anchor="middle">/api/generate-docs · /api/share</text>
+
+  <!-- ===== AURORA DATABASE ===== -->
+  <rect x="560" y="180" width="430" height="130" rx="8" fill="#0f172a"/>
+  <rect x="560" y="180" width="430" height="130" rx="8" fill="rgba(76,29,149,0.35)" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="775" y="205" fill="#a78bfa" font-size="11" font-weight="600" text-anchor="middle">Aurora PostgreSQL 16.6</text>
+  <text x="775" y="222" fill="#94a3b8" font-size="9" text-anchor="middle">Serverless v2 · 0.5–2 ACU</text>
+
+  <rect x="580" y="235" width="190" height="55" rx="5" fill="#0f172a"/>
+  <rect x="580" y="235" width="190" height="55" rx="5" fill="rgba(76,29,149,0.25)" stroke="#a78bfa" stroke-width="1" stroke-dasharray="3,2"/>
+  <text x="675" y="257" fill="#e2e8f0" font-size="9" text-anchor="middle">System Catalog</text>
+  <text x="675" y="272" fill="#64748b" font-size="8" text-anchor="middle">information_schema</text>
+
+  <rect x="790" y="235" width="180" height="55" rx="5" fill="#0f172a"/>
+  <rect x="790" y="235" width="180" height="55" rx="5" fill="rgba(76,29,149,0.25)" stroke="#a78bfa" stroke-width="1" stroke-dasharray="3,2"/>
+  <text x="880" y="257" fill="#e2e8f0" font-size="9" text-anchor="middle">Application Tables</text>
+  <text x="880" y="272" fill="#64748b" font-size="8" text-anchor="middle">users · saved_schemas · …</text>
+
+  <!-- ===== EXTERNAL ===== -->
+  <rect x="560" y="600" width="430" height="90" rx="8" fill="#0f172a"/>
+  <rect x="560" y="600" width="430" height="90" rx="8" fill="rgba(30,41,59,0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="775" y="628" fill="#94a3b8" font-size="10" font-weight="500" text-anchor="middle">DeepSeek API</text>
+  <text x="775" y="648" fill="#64748b" font-size="9" text-anchor="middle">AI-powered per-table documentation</text>
+  <text x="775" y="665" fill="#475569" font-size="8" text-anchor="middle">Model: deepseek-v4-flash</text>
+
+  <!-- ===== ARROWS ===== -->
+
+  <!-- Browser → Pages (down) -->
+  <line x1="260" y1="170" x2="260" y2="220" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Pages → API (down) -->
+  <line x1="260" y1="385" x2="260" y2="420" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+
+  <!-- API → Aurora (right) -->
+  <line x1="460" y1="492" x2="555" y2="242" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrow-violet)"/>
+  <text x="518" y="378" fill="#a78bfa" font-size="7.5" text-anchor="middle" transform="rotate(-55,518,378)">introspection</text>
+
+  <line x1="460" y1="547" x2="555" y2="272" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrow-violet)"/>
+  <text x="515" y="418" fill="#a78bfa" font-size="7.5" text-anchor="middle" transform="rotate(-55,515,418)">CRUD</text>
+
+  <!-- API → DeepSeek -->
+  <line x1="460" y1="547" x2="555" y2="645" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrow-slate)"/>
+  <text x="508" y="605" fill="#94a3b8" font-size="7.5" text-anchor="middle" transform="rotate(2,508,605)">table metadata → doc</text>
+
+  <!-- ===== LEGEND ===== -->
+  <rect x="30" y="620" width="420" height="100" rx="8" fill="#0f172a" stroke="#1e293b" stroke-width="1"/>
+  <text x="50" y="642" fill="#94a3b8" font-size="10" font-weight="600">Legend</text>
+  
+  <rect x="50" y="655" width="80" height="20" rx="4" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1"/>
+  <text x="145" y="669" fill="#94a3b8" font-size="8">Frontend (Next.js)</text>
+
+  <rect x="200" y="655" width="80" height="20" rx="4" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1"/>
+  <text x="295" y="669" fill="#94a3b8" font-size="8">Backend / API</text>
+
+  <rect x="50" y="685" width="80" height="20" rx="4" fill="rgba(76,29,149,0.35)" stroke="#a78bfa" stroke-width="1"/>
+  <text x="145" y="699" fill="#94a3b8" font-size="8">Database</text>
+
+  <rect x="200" y="685" width="80" height="20" rx="4" fill="rgba(30,41,59,0.5)" stroke="#94a3b8" stroke-width="1"/>
+  <text x="295" y="699" fill="#94a3b8" font-size="8">External Service</text>
+</svg>
+</div>
+
+<div class="card-grid">
+  <div class="card">
+    <div class="card-header"><div class="card-dot cyan"></div><h3>Frontend</h3></div>
+    <ul>
+      <li>• Next.js 16 App Router on Vercel</li>
+      <li>• shadcn/ui + Tailwind CSS v4</li>
+      <li>• React Flow for ERD canvas</li>
+      <li>• Static + Dynamic + ISR pages</li>
+    </ul>
+  </div>
+  <div class="card">
+    <div class="card-header"><div class="card-dot emerald"></div><h3>Backend</h3></div>
+    <ul>
+      <li>• Serverless Lambda API routes</li>
+      <li>• better-auth (email/password)</li>
+      <li>• Drizzle ORM w/ node-postgres</li>
+      <li>• DeepSeek AI for table docs</li>
+    </ul>
+  </div>
+  <div class="card">
+    <div class="card-header"><div class="card-dot violet"></div><h3>Database</h3></div>
+    <ul>
+      <li>• Aurora PostgreSQL 16.6 Serverless v2</li>
+      <li>• System catalog introspection</li>
+      <li>• 0.5–2 ACU auto-scaling</li>
+      <li>• us-east-1 · Encrypted at rest</li>
+    </ul>
+  </div>
+</div>
+
+<p class="note">This diagram is submitted as part of the SchemaLens entry for H0: Hack the Zero Stack (Track 4: Open Innovation).</p>
+<div class="footer">SchemaLens · 2026</div>
+</div>
+</body>
+</html>
