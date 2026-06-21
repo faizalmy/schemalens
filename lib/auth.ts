@@ -3,13 +3,13 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "./db";
 import { users, sessions, accounts, verifications } from "./db/schema";
 
-// Use plural keys to match usePlural: true — better-auth looks up
-// "users", "sessions", "accounts", "verifications" in the schema.
+// Use singular keys matching better-auth internal model names.
+// usePlural: true converts them to table names in queries.
 const authSchema = {
-  users,
-  sessions,
-  accounts,
-  verifications,
+  user: users,
+  session: sessions,
+  account: accounts,
+  verification: verifications,
 };
 
 export const auth = betterAuth({
