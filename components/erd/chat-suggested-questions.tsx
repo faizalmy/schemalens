@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react'
 import type { TableInfo } from '@/lib/types'
 import { buildSchemaSummary } from '@/lib/schema-chat/context-builder'
-import { PenLine, Search, Link2, ClipboardList } from 'lucide-react'
+import { PenLine, Search, Link2, ClipboardList, MessageSquare } from 'lucide-react'
 
 interface ChatSuggestedQuestionsProps {
   onSelect: (text: string) => void
@@ -28,7 +28,7 @@ export function ChatSuggestedQuestions({ onSelect, schemaTables }: ChatSuggested
     return (
       <div className="px-3 py-2">
         <p className="text-[11px] text-muted-foreground mb-2">
-          💬 I can write and run SQL for you. Try:
+          <MessageSquare className="w-3 h-3 inline-block align-text-bottom mr-1" /> I can write and run SQL for you. Try:
         </p>
         <div className="flex flex-wrap gap-1.5">
           {allSuggestions.map((s) => (

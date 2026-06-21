@@ -14,11 +14,13 @@ import {
   Download,
   FileText,
   FileCode,
+  MessageSquare,
 } from 'lucide-react'
 import Link from 'next/link'
 import { TableDetailPanel } from './table-detail-panel'
 import { AiDocsPanel } from './ai-docs-panel'
 import { DataPreviewPanel } from './data-preview-panel'
+import { SchemaChatPanel } from './schema-chat-panel'
 import { generateMarkdown, generateDDL, downloadFile } from '@/lib/export'
 import type { ParsedSchema } from '@/lib/types'
 
@@ -46,6 +48,7 @@ export function ERDExplorer({ name, schemaId, schema, aiDocumentation }: ERDExpl
   const [selectedTable, setSelectedTable] = useState<string | null>(null)
   const [showDocs, setShowDocs] = useState(false)
   const [showDataPreview, setShowDataPreview] = useState(false)
+  const [showSchemaChat, setShowSchemaChat] = useState(false)
   const [showExportMenu, setShowExportMenu] = useState(false)
   const [sharing, setSharing] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -59,6 +62,7 @@ export function ERDExplorer({ name, schemaId, schema, aiDocumentation }: ERDExpl
     if (tableName) {
       setShowDocs(false)
       setShowDataPreview(false)
+      setShowSchemaChat(false)
     }
   }, [])
 
@@ -122,6 +126,7 @@ export function ERDExplorer({ name, schemaId, schema, aiDocumentation }: ERDExpl
               if (!showDocs) {
                 setSelectedTable(null)
                 setShowDataPreview(false)
+                setShowSchemaChat(false)
               }
             }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
@@ -132,6 +137,25 @@ export function ERDExplorer({ name, schemaId, schema, aiDocumentation }: ERDExpl
           >
             <Sparkles className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">AI Docs</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setShowSchemaChat((v) => !v)
+              if (!showSchemaChat) {
+                setSelectedTable(null)
+                setShowDocs(false)
+                setShowDataPreview(false)
+              }
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              showSchemaChat
+                ? 'bg-primary/20 text-primary border border-primary/30'
+                : 'text-muted-foreground hover:text-foreground hover:bg-secondary border border-transparent'
+            }`}
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Schema Chat</span>
           </button>
 
           {/* Export dropdown */}
@@ -201,7 +225,10 @@ export function ERDExplorer({ name, schemaId, schema, aiDocumentation }: ERDExpl
             table={selectedTableData}
             relations={schema.relations}
             onClose={() => setSelectedTable(null)}
-            onPreviewData={() => setShowDataPreview(true)}
+            onPreviewData={() => {
+              setShowDataPreview(true)
+              setShowSchemaChat(false)
+            }}
           />
         )}
         {showDocs && (
@@ -219,6 +246,14 @@ export function ERDExplorer({ name, schemaId, schema, aiDocumentation }: ERDExpl
             onClose={() => setShowDataPreview(false)}
           />
         )}
+        {/* Chat panel — always mounted to preserve state, hidden via CSS */}
+        <div className={showSchemaChat ? '' : 'hidden'}>
+          <SchemaChatPanel
+            schemaId={schemaId}
+            schema={schema}
+            onClose={() => setShowSchemaChat(false)}
+          />
+        </div>
       </div>
     </div>
   )
