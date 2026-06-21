@@ -22,7 +22,7 @@ export function ChatSuggestedQuestions({ onSelect, schemaTables }: ChatSuggested
     ? buildSchemaSummary(schemaTables)
     : []
 
-  const allSuggestions = [...fixedSuggestions, ...dynamicSuggestions].slice(0, 7)
+  const allSuggestions = [...fixedSuggestions, ...dynamicSuggestions].slice(0, 16)
 
   if (!schemaTables || schemaTables.length === 0) {
     return (
