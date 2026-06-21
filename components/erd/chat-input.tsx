@@ -18,8 +18,8 @@ export function ChatInput({ value, onChange, onSend, disabled }: ChatInputProps)
     if (el) {
       el.style.height = 'auto'
       const lineHeight = 20
-      const minHeight = lineHeight
-      const maxHeight = lineHeight * 4
+      const minHeight = 32
+      const maxHeight = lineHeight * 6
       const scrollHeight = el.scrollHeight
       el.style.height = `${Math.min(Math.max(scrollHeight, minHeight), maxHeight)}px`
     }
@@ -44,7 +44,7 @@ export function ChatInput({ value, onChange, onSend, disabled }: ChatInputProps)
         placeholder="Ask about your schema..."
         disabled={disabled}
         rows={1}
-        className="flex-1 min-h-[20px] max-h-[80px] bg-secondary/40 border border-border rounded-lg px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/50 resize-none outline-none focus:border-primary/40 focus:ring-1 focus:ring-primary/20 transition-colors disabled:opacity-50"
+        className="flex-1 min-h-[32px] max-h-[120px] bg-secondary/40 border border-border rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 resize-none outline-none focus:border-primary/40 focus:ring-1 focus:ring-primary/20 transition-colors disabled:opacity-50"
       />
       <button
         onClick={onSend}
