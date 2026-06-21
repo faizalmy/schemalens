@@ -19,3 +19,4 @@ node_modules
 tsconfig.tsbuildinfo
 .DS_Store
 .vercel
+.env.production
