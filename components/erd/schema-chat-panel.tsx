@@ -69,20 +69,25 @@ export function SchemaChatPanel({ schemaId, schema, onClose }: SchemaChatPanelPr
     const cid = conversationId
     if (!cid) return
     const msgs = messagesRef.current
-    // Derive title from first user message
     const firstUserMsg = msgs.find((m) => m.role === 'user')
     const title = firstUserMsg
       ? firstUserMsg.content.length > 60
         ? firstUserMsg.content.slice(0, 60) + '…'
         : firstUserMsg.content
       : 'New Chat'
-
     await fetch(`/api/schema-chat/conversations/${cid}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ messages: msgs, title }),
     })
   }
+
+  // Auto-save when streaming finishes — runs AFTER React flushes state updates
+  useEffect(() => {
+    if (!isStreaming && messagesRef.current.length > 0) {
+      saveMessages()
+    }
+  }, [isStreaming])
 
   // Load conversation from history
   async function loadConversation(id: string) {
@@ -347,9 +352,6 @@ export function SchemaChatPanel({ schemaId, schema, onClose }: SchemaChatPanelPr
           }
         }
       }
-
-      // Auto-save after streaming completes
-      saveMessages()
     } catch (err: any) {
       if (err.name === 'AbortError') return
       setMessages((prev) => {
