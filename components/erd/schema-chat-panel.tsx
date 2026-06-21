@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { X, Bot } from 'lucide-react'
+import { X, Bot, Plus, History, Trash2 } from 'lucide-react'
 import { ChatMessage } from './chat-message'
 import { ChatInput } from './chat-input'
 import { ChatSuggestedQuestions } from './chat-suggested-questions'
@@ -16,6 +16,13 @@ interface PanelMessage {
   resultTable?: ExecuteSqlOutput
 }
 
+interface ConversationSummary {
+  id: string
+  title: string
+  createdAt: string
+  updatedAt: string
+}
+
 interface SchemaChatPanelProps {
   schemaId: string
   schema: ParsedSchema
@@ -26,8 +33,14 @@ export function SchemaChatPanel({ schemaId, schema, onClose }: SchemaChatPanelPr
   const [messages, setMessages] = useState<PanelMessage[]>([])
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
+  const [conversationId, setConversationId] = useState<string | null>(null)
+  const [showHistory, setShowHistory] = useState(false)
+  const [conversations, setConversations] = useState<ConversationSummary[]>([])
+  const [loadingHistory, setLoadingHistory] = useState(false)
   const abortControllerRef = useRef<AbortController | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesRef = useRef(messages)
+  messagesRef.current = messages
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -36,6 +49,100 @@ export function SchemaChatPanel({ schemaId, schema, onClose }: SchemaChatPanelPr
   useEffect(() => {
     scrollToBottom()
   }, [messages, scrollToBottom])
+
+  // Auto-create a conversation on first send
+  async function ensureConversation(): Promise<string> {
+    if (conversationId) return conversationId
+    const res = await fetch('/api/schema-chat/conversations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ schemaId }),
+    })
+    if (!res.ok) throw new Error('Failed to create conversation')
+    const conv = await res.json()
+    setConversationId(conv.id)
+    return conv.id
+  }
+
+  // Auto-save messages to DB
+  async function saveMessages() {
+    const cid = conversationId
+    if (!cid) return
+    const msgs = messagesRef.current
+    // Derive title from first user message
+    const firstUserMsg = msgs.find((m) => m.role === 'user')
+    const title = firstUserMsg
+      ? firstUserMsg.content.length > 60
+        ? firstUserMsg.content.slice(0, 60) + '…'
+        : firstUserMsg.content
+      : 'New Chat'
+
+    await fetch(`/api/schema-chat/conversations/${cid}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: msgs, title }),
+    })
+  }
+
+  // Load conversation from history
+  async function loadConversation(id: string) {
+    abortControllerRef.current?.abort()
+    setIsStreaming(false)
+    setShowHistory(false)
+    setConversationId(id)
+    setMessages([])
+
+    const res = await fetch(`/api/schema-chat/conversations/${id}`, { method: 'GET' })
+    if (!res.ok) return
+    const data = await res.json()
+
+    setConversationId(data.id)
+    setMessages(
+      data.messages.map((m: any) => ({
+        role: m.role,
+        content: m.content || '',
+        toolCalls: m.toolCalls || [],
+        reasoning: m.reasoning || '',
+        resultTable: m.resultTable || undefined,
+      })),
+    )
+  }
+
+  // New conversation
+  async function newConversation() {
+    abortControllerRef.current?.abort()
+    setIsStreaming(false)
+    setConversationId(null)
+    setMessages([])
+    setInput('')
+    setShowHistory(false)
+  }
+
+  // Delete conversation
+  async function deleteConversation(id: string, e: React.MouseEvent) {
+    e.stopPropagation()
+    await fetch(`/api/schema-chat/conversations/${id}`, { method: 'DELETE' })
+    setConversations((prev) => prev.filter((c) => c.id !== id))
+    if (conversationId === id) {
+      setConversationId(null)
+      setMessages([])
+    }
+  }
+
+  // Load history list
+  async function toggleHistory() {
+    const next = !showHistory
+    setShowHistory(next)
+    if (next) {
+      setLoadingHistory(true)
+      try {
+        const res = await fetch(`/api/schema-chat/conversations?schemaId=${schemaId}`, { method: 'GET' })
+        if (res.ok) setConversations(await res.json())
+      } finally {
+        setLoadingHistory(false)
+      }
+    }
+  }
 
   async function handleSend() {
     if (!input.trim() || isStreaming) return
@@ -49,6 +156,7 @@ export function SchemaChatPanel({ schemaId, schema, onClose }: SchemaChatPanelPr
     }
 
     setMessages((prev) => [...prev, userMessage, assistantMessage])
+    const msg = input.trim()
     setInput('')
     setIsStreaming(true)
 
@@ -56,7 +164,14 @@ export function SchemaChatPanel({ schemaId, schema, onClose }: SchemaChatPanelPr
     abortControllerRef.current = abortController
 
     try {
-      const history = [...messages, userMessage].map((m) => ({
+      // Create conversation on first send
+      let cid = conversationId
+      if (!cid) {
+        cid = await ensureConversation()
+      }
+
+      const currentMessages = messagesRef.current
+      const history = [...currentMessages, userMessage].map((m) => ({
         role: m.role,
         content: m.content,
         toolCalls: m.toolCalls?.map((tc) => ({
@@ -73,7 +188,7 @@ export function SchemaChatPanel({ schemaId, schema, onClose }: SchemaChatPanelPr
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           schemaId,
-          message: input.trim(),
+          message: msg,
           history,
         }),
         signal: abortController.signal,
@@ -232,6 +347,9 @@ export function SchemaChatPanel({ schemaId, schema, onClose }: SchemaChatPanelPr
           }
         }
       }
+
+      // Auto-save after streaming completes
+      saveMessages()
     } catch (err: any) {
       if (err.name === 'AbortError') return
       setMessages((prev) => {
@@ -260,16 +378,67 @@ export function SchemaChatPanel({ schemaId, schema, onClose }: SchemaChatPanelPr
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
         <div className="flex items-center gap-2 min-w-0">
-          <Bot className="w-4 h-4 text-muted-foreground" />
+          <Bot className="w-4 h-4 text-muted-foreground shrink-0" />
           <span className="text-sm font-semibold text-foreground">Schema Chat</span>
         </div>
-        <button
-          onClick={onClose}
-          className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={newConversation}
+            disabled={isStreaming}
+            title="New chat"
+            className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors disabled:opacity-40"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+          <button
+            onClick={toggleHistory}
+            title="Conversation history"
+            className={`p-1.5 rounded transition-colors ${
+              showHistory
+                ? 'text-primary bg-primary/10'
+                : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+            }`}
+          >
+            <History className="w-4 h-4" />
+          </button>
+          <button
+            onClick={onClose}
+            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
+
+      {showHistory && (
+        <div className="border-b border-border max-h-48 overflow-y-auto">
+          {loadingHistory ? (
+            <div className="px-4 py-3 text-xs text-muted-foreground">Loading...</div>
+          ) : conversations.length === 0 ? (
+            <div className="px-4 py-3 text-xs text-muted-foreground">No previous conversations</div>
+          ) : (
+            conversations.map((c) => (
+              <div
+                key={c.id}
+                onClick={() => loadConversation(c.id)}
+                className={`flex items-center gap-2 px-4 py-2 cursor-pointer text-xs hover:bg-secondary/50 transition-colors group ${
+                  conversationId === c.id ? 'bg-primary/5 border-l-2 border-primary' : 'border-l-2 border-transparent'
+                }`}
+              >
+                <Bot className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                <span className="flex-1 truncate text-foreground">{c.title}</span>
+                <button
+                  onClick={(e) => deleteConversation(c.id, e)}
+                  className="p-0.5 rounded text-muted-foreground/40 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
+                  title="Delete"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto py-3 space-y-3">
@@ -304,7 +473,7 @@ export function SchemaChatPanel({ schemaId, schema, onClose }: SchemaChatPanelPr
       </div>
 
       {/* Suggested questions */}
-      {messages.length === 0 && (
+      {messages.length === 0 && !showHistory && (
         <ChatSuggestedQuestions
           onSelect={handleSelectQuestion}
           schemaTables={schema.tables}
