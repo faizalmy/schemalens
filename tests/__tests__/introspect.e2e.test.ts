@@ -8,7 +8,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 
 const AUTH_API = "http://localhost:3000/api/auth";
 const API = "http://localhost:3000/api";
-const TEST_DB = "postgresql://schemalens:schemalens_dev@localhost:5434/schemalens";
+const TEST_DB = process.env.TEST_DATABASE_URL || "postgresql://schemalens:schemalens_dev@localhost:5434/schemalens_test";
 
 let cookieHeader: string;
 const ORIGIN = { Origin: "http://localhost:3000" };
