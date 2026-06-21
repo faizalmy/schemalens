@@ -10,7 +10,12 @@ __v0_jsx-dev-runtime.ts
 .env
 .env*.local
 
+# Pnpm auto-generated (pnpm 11+)
+pnpm-workspace.yaml
+
 # Common ignores
 node_modules
 .next/
+tsconfig.tsbuildinfo
 .DS_Store
+.vercel
