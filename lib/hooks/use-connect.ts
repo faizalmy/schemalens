@@ -7,6 +7,7 @@ interface ConnectionFields {
   database: string;
   username: string;
   password: string;
+  connectionString: string;
 }
 
 const DEFAULT_FIELDS: ConnectionFields = {
@@ -16,7 +17,48 @@ const DEFAULT_FIELDS: ConnectionFields = {
   database: "",
   username: "",
   password: "",
+  connectionString: "",
 };
+
+/**
+ * Parse a PostgreSQL connection URL into its components.
+ * Supports formats:
+ *   postgresql://user:pass@host:port/db
+ *   postgres://user:pass@host:port/db
+ *   postgresql://user:pass@host/db       (defaults port to 5432)
+ */
+export function parseConnectionString(
+  url: string,
+): {
+  host: string;
+  port: string;
+  database: string;
+  username: string;
+  password: string;
+} | null {
+  // postgres[ql]://user:pass@host[:port]/db[?params]
+  const RE =
+    /^postgres(?:ql)?:\/\/([^:]+):([^@]+)@([^:/]+)(?::(\d+))?\/([^?]+)/;
+
+  const m = url.match(RE);
+  if (!m) return null;
+
+  return {
+    username: decodeURIComponent(m[1]),
+    password: decodeURIComponent(m[2]),
+    host: m[3],
+    port: m[4] || "5432",
+    database: decodeURIComponent(m[5]),
+  };
+}
+
+/** Capitalize and clean up a database name for use as a display name. */
+function humanizeDbName(db: string): string {
+  return db
+    .replace(/[-_]/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .trim();
+}
 
 export function useConnect() {
   const [fields, setFields] = useState<ConnectionFields>(DEFAULT_FIELDS);
@@ -26,6 +68,22 @@ export function useConnect() {
   function update(key: keyof ConnectionFields, value: string) {
     setFields((f) => ({ ...f, [key]: value }));
     setError(null);
+  }
+
+  /** Parse a connection string and fill all individual fields. */
+  function fillFromUrl(url: string) {
+    const parsed = parseConnectionString(url);
+    if (parsed) {
+      setFields((f) => ({
+        ...f,
+        ...parsed,
+        connectionString: url,
+        name: f.name || humanizeDbName(parsed.database),
+      }));
+    } else {
+      // Still update the connectionString field so the user sees what they typed
+      setFields((f) => ({ ...f, connectionString: url }));
+    }
   }
 
   function buildConnectionString(): string {
@@ -67,5 +125,5 @@ export function useConnect() {
     setError(null);
   }
 
-  return { fields, loading, error, update, submit, reset };
+  return { fields, loading, error, update, submit, reset, fillFromUrl };
 }

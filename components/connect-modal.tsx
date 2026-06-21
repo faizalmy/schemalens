@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, Database, Loader2, AlertCircle } from 'lucide-react'
+import { X, Database, Loader2, AlertCircle, Link2, ChevronDown, ChevronUp } from 'lucide-react'
 import { useConnect } from '@/lib/hooks/use-connect'
 
 interface ConnectModalProps {
@@ -11,8 +11,10 @@ interface ConnectModalProps {
 
 export function ConnectModal({ onClose }: ConnectModalProps) {
   const router = useRouter()
-  const { fields, loading, error, update, submit } = useConnect()
+  const { fields, loading, error, update, submit, fillFromUrl } = useConnect()
   const [ssl, setSsl] = useState(true)
+  const [showUrlInput, setShowUrlInput] = useState(false)
+  const urlInputRef = useRef<HTMLInputElement>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -21,6 +23,26 @@ export function ConnectModal({ onClose }: ConnectModalProps) {
       router.push(`/explore/${schemaId}`)
     }
   }
+
+  const handleUrlChange = useCallback(
+    (value: string) => {
+      fillFromUrl(value)
+    },
+    [fillFromUrl],
+  )
+
+  const handleUrlPaste = useCallback(
+    (e: React.ClipboardEvent<HTMLInputElement>) => {
+      // Let the onChange handler process the pasted value
+      // but mark that we should transition
+      setTimeout(() => {
+        if (fields.connectionString && fields.host !== 'localhost') {
+          setShowUrlInput(false)
+        }
+      }, 0)
+    },
+    [fields.connectionString, fields.host],
+  )
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -51,97 +73,154 @@ export function ConnectModal({ onClose }: ConnectModalProps) {
             </div>
           )}
 
-              <Field label="Connection name" required>
-              <input
-                type="text"
-                placeholder="My Production DB"
-                value={fields.name}
-                onChange={(e) => update('name', e.target.value)}
-                className="input-field"
-                disabled={loading}
-              />
-            </Field>
+          {/* Paste connection string toggle */}
+          <button
+            type="button"
+            onClick={() => {
+              setShowUrlInput(!showUrlInput)
+              if (!showUrlInput) {
+                setTimeout(() => urlInputRef.current?.focus(), 100)
+              }
+            }}
+            className="flex items-center gap-2 w-full p-3 rounded-md border border-border hover:bg-secondary transition-colors text-left"
+          >
+            <Link2 className="w-4 h-4 text-primary" />
+            <span className="text-sm font-medium text-foreground flex-1">
+              Paste connection string
+            </span>
+            {showUrlInput ? (
+              <ChevronUp className="w-4 h-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            )}
+          </button>
 
-            <div className="grid grid-cols-3 gap-3">
-              <div className="col-span-2">
-                <Field label="Host" required>
-                  <input
-                    type="text"
-                    placeholder="my-cluster.cluster-xxx.us-east-1.rds.amazonaws.com"
-                    value={fields.host}
-                    onChange={(e) => update('host', e.target.value)}
-                    className="input-field font-mono text-xs"
-                    disabled={loading}
-                  />
-                </Field>
-              </div>
-              <Field label="Port">
+          {showUrlInput && (
+            <div className="animate-in slide-in-from-top-1 fade-in duration-150">
+              <Field label="Connection string">
                 <input
-                  type="number"
-                  value={fields.port}
-                  onChange={(e) => update('port', e.target.value)}
-                  className="input-field font-mono"
+                  ref={urlInputRef}
+                  type="text"
+                  placeholder="postgresql://user:password@host:5432/database"
+                  value={fields.connectionString}
+                  onChange={(e) => handleUrlChange(e.target.value)}
+                  onPaste={handleUrlPaste}
+                  className="input-field font-mono text-xs"
                   disabled={loading}
                 />
               </Field>
             </div>
+          )}
 
-            <Field label="Database" required>
+          {/* Divider */}
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="bg-card px-2 text-xs text-muted-foreground">
+                or enter details manually
+              </span>
+            </div>
+          </div>
+
+          {/* Connection name */}
+          <Field label="Connection name" required>
+            <input
+              type="text"
+              placeholder="My Production DB"
+              value={fields.name}
+              onChange={(e) => update('name', e.target.value)}
+              className="input-field"
+              disabled={loading}
+            />
+          </Field>
+
+          {/* Host + Port */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2">
+              <Field label="Host" required>
+                <input
+                  type="text"
+                  placeholder="my-cluster.cluster-xxx.us-east-1.rds.amazonaws.com"
+                  value={fields.host}
+                  onChange={(e) => update('host', e.target.value)}
+                  className="input-field font-mono text-xs"
+                  disabled={loading}
+                />
+              </Field>
+            </div>
+            <Field label="Port">
               <input
-                type="text"
-                placeholder="postgres"
-                value={fields.database}
-                onChange={(e) => update('database', e.target.value)}
+                type="number"
+                value={fields.port}
+                onChange={(e) => update('port', e.target.value)}
                 className="input-field font-mono"
                 disabled={loading}
               />
             </Field>
+          </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Username" required>
-                <input
-                  type="text"
-                  placeholder="postgres"
-                  value={fields.username}
-                  onChange={(e) => update('username', e.target.value)}
-                  className="input-field font-mono"
-                  disabled={loading}
-                />
-              </Field>
-              <Field label="Password" required>
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  value={fields.password}
-                  onChange={(e) => update('password', e.target.value)}
-                  className="input-field"
-                  disabled={loading}
-                />
-              </Field>
-            </div>
+          {/* Database */}
+          <Field label="Database" required>
+            <input
+              type="text"
+              placeholder="postgres"
+              value={fields.database}
+              onChange={(e) => update('database', e.target.value)}
+              className="input-field font-mono"
+              disabled={loading}
+            />
+          </Field>
 
-            <label className="flex items-center gap-2.5 cursor-pointer group">
-              <div className="relative">
-                <input
-                  type="checkbox"
-                  checked={ssl}
-                  onChange={(e) => setSsl(e.target.checked)}
-                  className="sr-only"
-                  disabled={loading}
-                />
+          {/* Username + Password */}
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Username" required>
+              <input
+                type="text"
+                placeholder="postgres"
+                value={fields.username}
+                onChange={(e) => update('username', e.target.value)}
+                className="input-field font-mono"
+                disabled={loading}
+              />
+            </Field>
+            <Field label="Password" required>
+              <input
+                type="password"
+                placeholder="••••••••"
+                value={fields.password}
+                onChange={(e) => update('password', e.target.value)}
+                className="input-field"
+                disabled={loading}
+              />
+            </Field>
+          </div>
+
+          {/* SSL toggle */}
+          <label className="flex items-center gap-2.5 cursor-pointer group">
+            <div className="relative">
+              <input
+                type="checkbox"
+                checked={ssl}
+                onChange={(e) => setSsl(e.target.checked)}
+                className="sr-only"
+                disabled={loading}
+              />
+              <div
+                className={`w-9 h-5 rounded-full transition-colors ${ssl ? 'bg-primary' : 'bg-secondary'}`}
+              >
                 <div
-                  className={`w-9 h-5 rounded-full transition-colors ${ssl ? 'bg-primary' : 'bg-secondary'}`}
-                >
-                  <div
-                    className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${ssl ? 'translate-x-4' : 'translate-x-0'}`}
-                  />
-                </div>
+                  className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${ssl ? 'translate-x-4' : 'translate-x-0'}`}
+                />
               </div>
-              <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
-                Enable SSL / TLS
-              </span>
-            </label>
+            </div>
+            <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
+              Enable SSL / TLS
+            </span>
+          </label>
 
+          {/* Actions */}
           <div className="flex items-center gap-3 pt-2">
             <button
               type="button"
@@ -191,6 +270,13 @@ export function ConnectModal({ onClose }: ConnectModalProps) {
         .input-field:disabled {
           opacity: 0.5;
           cursor: not-allowed;
+        }
+        @keyframes slide-in-from-top-1 {
+          from { opacity: 0; transform: translateY(-4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-in.slide-in-from-top-1.fade-in {
+          animation: slide-in-from-top-1 0.15s ease-out;
         }
       `}</style>
     </div>
