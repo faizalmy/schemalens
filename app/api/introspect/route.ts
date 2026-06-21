@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { introspectDatabase } from "@/lib/introspection";
 import { createSchema } from "@/lib/schema-store";
+import { encrypt } from "@/lib/encryption";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
@@ -18,7 +19,8 @@ export async function POST(request: Request) {
 
   try {
     const schema = await introspectDatabase(connectionString);
-    const schemaId = await createSchema(session.user.id, name, schema);
+    const encrypted = encrypt(connectionString);
+    const schemaId = await createSchema(session.user.id, name, schema, encrypted);
     return NextResponse.json({ schemaId });
   } catch (err: any) {
     return NextResponse.json(

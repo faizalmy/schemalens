@@ -1,15 +1,16 @@
 'use client'
 
-import { X, Key, Hash } from 'lucide-react'
+import { X, Key, Hash, Table2 } from 'lucide-react'
 import type { ParsedSchema } from '@/lib/types'
 
 interface TableDetailPanelProps {
   table: ParsedSchema['tables'][number]
   relations: ParsedSchema['relations']
   onClose: () => void
+  onPreviewData?: () => void
 }
 
-export function TableDetailPanel({ table, relations, onClose }: TableDetailPanelProps) {
+export function TableDetailPanel({ table, relations, onClose, onPreviewData }: TableDetailPanelProps) {
   const inbound = relations.filter((r) => r.toTable === table.name)
   const outbound = relations.filter((r) => r.fromTable === table.name)
 
@@ -130,6 +131,19 @@ export function TableDetailPanel({ table, relations, onClose }: TableDetailPanel
               </div>
             )}
           </section>
+        )}
+
+        {/* Preview Data button */}
+        {onPreviewData && (
+          <div className="px-4 py-3 border-t border-border">
+            <button
+              onClick={onPreviewData}
+              className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-xs font-medium border border-primary/20 transition-colors"
+            >
+              <Table2 className="w-3.5 h-3.5" />
+              Preview data
+            </button>
+          </div>
         )}
       </div>
     </div>

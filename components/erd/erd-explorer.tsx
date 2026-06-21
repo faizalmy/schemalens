@@ -11,10 +11,15 @@ import {
   Database,
   Check,
   Loader2,
+  Download,
+  FileText,
+  FileCode,
 } from 'lucide-react'
 import Link from 'next/link'
 import { TableDetailPanel } from './table-detail-panel'
 import { AiDocsPanel } from './ai-docs-panel'
+import { DataPreviewPanel } from './data-preview-panel'
+import { generateMarkdown, generateDDL, downloadFile } from '@/lib/export'
 import type { ParsedSchema } from '@/lib/types'
 
 // Dynamically import canvas to avoid SSR issues with ReactFlow
@@ -40,6 +45,8 @@ interface ERDExplorerProps {
 export function ERDExplorer({ name, schemaId, schema, aiDocumentation }: ERDExplorerProps) {
   const [selectedTable, setSelectedTable] = useState<string | null>(null)
   const [showDocs, setShowDocs] = useState(false)
+  const [showDataPreview, setShowDataPreview] = useState(false)
+  const [showExportMenu, setShowExportMenu] = useState(false)
   const [sharing, setSharing] = useState(false)
   const [copied, setCopied] = useState(false)
 
@@ -49,7 +56,10 @@ export function ERDExplorer({ name, schemaId, schema, aiDocumentation }: ERDExpl
 
   const handleTableSelect = useCallback((tableName: string | null) => {
     setSelectedTable(tableName)
-    if (tableName) setShowDocs(false)
+    if (tableName) {
+      setShowDocs(false)
+      setShowDataPreview(false)
+    }
   }, [])
 
   async function handleShare() {
@@ -109,7 +119,10 @@ export function ERDExplorer({ name, schemaId, schema, aiDocumentation }: ERDExpl
           <button
             onClick={() => {
               setShowDocs((v) => !v)
-              if (!showDocs) setSelectedTable(null)
+              if (!showDocs) {
+                setSelectedTable(null)
+                setShowDataPreview(false)
+              }
             }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
               showDocs
@@ -120,6 +133,44 @@ export function ERDExplorer({ name, schemaId, schema, aiDocumentation }: ERDExpl
             <Sparkles className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">AI Docs</span>
           </button>
+
+          {/* Export dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowExportMenu((v) => !v)}
+              onBlur={() => setTimeout(() => setShowExportMenu(false), 200)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Export</span>
+            </button>
+            {showExportMenu && (
+              <div className="absolute right-0 top-full mt-1 w-44 rounded-lg border border-border bg-card shadow-lg z-50 overflow-hidden">
+                <button
+                  onClick={() => {
+                    const md = generateMarkdown(schema, name, aiDocumentation)
+                    downloadFile(md, `${name.toLowerCase().replace(/\s+/g, '-')}-schema.md`, 'text/markdown')
+                    setShowExportMenu(false)
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary transition-colors text-left"
+                >
+                  <FileText className="w-3.5 h-3.5 text-primary" />
+                  Markdown docs
+                </button>
+                <button
+                  onClick={() => {
+                    const ddl = generateDDL(schema)
+                    downloadFile(ddl, `${name.toLowerCase().replace(/\s+/g, '-')}-schema.sql`, 'text/plain')
+                    setShowExportMenu(false)
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary transition-colors text-left"
+                >
+                  <FileCode className="w-3.5 h-3.5 text-muted-foreground" />
+                  SQL DDL
+                </button>
+              </div>
+            )}
+          </div>
 
           <button
             onClick={handleShare}
@@ -145,11 +196,12 @@ export function ERDExplorer({ name, schemaId, schema, aiDocumentation }: ERDExpl
         </div>
 
         {/* Side panels */}
-        {selectedTableData && !showDocs && (
+        {selectedTableData && !showDocs && !showDataPreview && (
           <TableDetailPanel
             table={selectedTableData}
             relations={schema.relations}
             onClose={() => setSelectedTable(null)}
+            onPreviewData={() => setShowDataPreview(true)}
           />
         )}
         {showDocs && (
@@ -158,6 +210,13 @@ export function ERDExplorer({ name, schemaId, schema, aiDocumentation }: ERDExpl
             schema={schema}
             existingDocs={aiDocumentation}
             onClose={() => setShowDocs(false)}
+          />
+        )}
+        {showDataPreview && selectedTable && (
+          <DataPreviewPanel
+            schemaId={schemaId}
+            tableName={selectedTable}
+            onClose={() => setShowDataPreview(false)}
           />
         )}
       </div>

@@ -8,10 +8,11 @@ export async function createSchema(
   userId: string,
   name: string,
   tablesJson: unknown,
+  connectionStringEncrypted?: string,
 ): Promise<string> {
   const result = await db
     .insert(savedSchemas)
-    .values({ userId, name, tablesJson })
+    .values({ userId, name, tablesJson, connectionStringEncrypted })
     .returning({ id: savedSchemas.id });
 
   return result[0].id;
@@ -25,6 +26,16 @@ export async function getSchema(id: string) {
     .limit(1);
 
   return result[0] || null;
+}
+
+export async function getConnectionString(id: string): Promise<string | null> {
+  const result = await db
+    .select({ connectionStringEncrypted: savedSchemas.connectionStringEncrypted })
+    .from(savedSchemas)
+    .where(eq(savedSchemas.id, id))
+    .limit(1);
+
+  return result[0]?.connectionStringEncrypted ?? null;
 }
 
 export async function listUserSchemas(userId: string) {

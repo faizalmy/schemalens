@@ -76,6 +76,7 @@ export const savedSchemas = pgTable("saved_schemas", {
     .references(() => users.id, { onDelete: "cascade" }),
   name: text().notNull(),
   dbType: text().notNull().default("aurora-postgresql"),
+  connectionStringEncrypted: text(),
   tablesJson: jsonb().notNull(),
   aiDocsJson: jsonb(),
   shareId: text().unique(),

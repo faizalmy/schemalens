@@ -5,6 +5,8 @@ import { redirect } from 'next/navigation'
 import { ERDExplorer } from '@/components/erd/erd-explorer'
 import type { ParsedSchema } from '@/lib/types'
 
+export const dynamic = 'force-dynamic'
+
 interface Props {
   params: Promise<{ schemaId: string }>
 }
