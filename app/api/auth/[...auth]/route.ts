@@ -16,7 +16,16 @@ export const POST = async (request: Request) => {
   const origError = console.error;
   const captured: string[] = [];
   console.error = (...args: any[]) => {
-    captured.push(args.map((a) => (typeof a === "object" ? JSON.stringify(a, null, 2) : String(a))).join(" "));
+    captured.push(
+      args
+        .map((a) => {
+          if (a instanceof Error) {
+            return `[${a.name}] msg=${a.message} stack_first=${(a.stack||"").split("\n").slice(0,2).join(" | ")}`;
+          }
+          return String(a);
+        })
+        .join(" ")
+    );
     origError(...args);
   };
 
