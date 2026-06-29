@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { Database, Table2, GitBranch, Lock, Loader2 } from 'lucide-react'
-import type { ParsedSchema } from '@/lib/dummy-data'
+import type { ParsedSchema } from '@/lib/types'
 import { useState, useCallback } from 'react'
 import { TableDetailPanel } from './table-detail-panel'
 
