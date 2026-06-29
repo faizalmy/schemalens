@@ -48,7 +48,8 @@ export async function POST(request: Request) {
   try {
     // Dynamically import pg to avoid bundling it on the client
     const { Pool } = await import("pg");
-    const pool = new Pool({ connectionString, max: 1, connectionTimeoutMillis: 5000 });
+    const { normalizeConnectionString } = await import("@/lib/db-utils");
+    const pool = new Pool({ connectionString: normalizeConnectionString(connectionString), max: 1, connectionTimeoutMillis: 5000 });
     const client = await pool.connect();
 
     // Sanitize table name — only allow alphanumeric, underscore, schema-qualified
