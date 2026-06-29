@@ -16,8 +16,14 @@ function isReadOnly(query: string): boolean {
   const trimmed = query.trim();
   if (!trimmed) return false;
 
+  // Strip SQL comments (-- line comments and /* block comments */)
+  const noComments = trimmed
+    .replace(/--[^\n]*/g, "")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .trim();
+
   // Strip string contents to avoid false positives on semicolons in strings
-  const stripped = trimmed
+  const stripped = noComments
     .replace(/'[^']*'/g, "")
     .replace(/"[^"]*"/g, "")
     .replace(/\$\$[\s\S]*?\$\$/g, "")
@@ -30,7 +36,7 @@ function isReadOnly(query: string): boolean {
   }
 
   // Only allow SELECT or WITH as statement prefixes
-  const normalized = trimmed.toUpperCase().trimStart();
+  const normalized = noComments.toUpperCase().trimStart();
   const isAllowedPrefix =
     normalized.startsWith("SELECT") ||
     normalized.startsWith("WITH") ||
@@ -45,12 +51,12 @@ function isReadOnly(query: string): boolean {
   const unsafePattern =
     /\b(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE|GRANT|REVOKE|EXECUTE|CALL|MERGE|COPY|REINDEX|VACUUM|CLUSTER|REFRESH|SECURITY|SET\s+ROLE|SET\s+SESSION\s+AUTHORIZATION|LISTEN|NOTIFY)\b/i;
 
-  if (unsafePattern.test(trimmed)) {
+  if (unsafePattern.test(noComments)) {
     return false;
   }
 
   // Block EXPLAIN ANALYZE (which actually executes the plan)
-  if (/EXPLAIN\s+ANALYZE\s+(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE)/i.test(trimmed)) {
+  if (/EXPLAIN\s+ANALYZE\s+(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE)/i.test(noComments)) {
     return false;
   }
 
