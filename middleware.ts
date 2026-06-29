@@ -4,6 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 const SESSION_API_PATH = "/api/auth/get-session";
 
 const authRoutes = ["/sign-in", "/sign-up"];
+const publicRoutes = ["/", "/demo", "/share"];
 
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -13,7 +14,8 @@ export default async function middleware(request: NextRequest) {
   }
 
   const isAuthRoute = pathname === "/" || authRoutes.includes(pathname);
-  const isProtectedRoute = !isAuthRoute;
+  const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
+  const isProtectedRoute = !isAuthRoute && !isPublicRoute;
 
   try {
     const SESSION_API = `${request.nextUrl.origin}${SESSION_API_PATH}`;
