@@ -23,6 +23,7 @@ export async function POST(request: Request) {
     const schemaId = await createSchema(session.user.id, name, schema, encrypted);
     return NextResponse.json({ schemaId });
   } catch (err: any) {
+    console.error("[introspect] Error:", err.message, err.stack);
     return NextResponse.json(
       { error: err.message || "Introspection failed" },
       { status: 500 },
