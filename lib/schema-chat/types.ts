@@ -44,7 +44,7 @@ export interface CheckSqlOutput {
   checks: { pass: boolean; message: string }[];
 }
 
-export const MAX_RETRIES = 2;
+export const MAX_RETRIES = 5;
 export const MAX_ROWS = 1000;
 export const QUERY_TIMEOUT_MS = 5000;
 export const MAX_SCHEMA_TABLES = 50;
