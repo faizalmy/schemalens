@@ -53,6 +53,7 @@ export async function* runSchemaChat(
         execute_sql: executeSqlTool(getConnectionString),
       },
       stopWhen: stepCountIs(MAX_RETRIES + 2),
+      maxTokens: 16384,
     });
 
     // Process the fullStream live as events arrive from the LLM
