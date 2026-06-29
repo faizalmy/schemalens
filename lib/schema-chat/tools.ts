@@ -70,7 +70,7 @@ function isReadOnly(query: string): boolean {
  */
 export const generateSqlTool = tool({
   description:
-    "Write a PostgreSQL query. Pass your generated SQL as the `query` parameter. Returns the formatted SQL.",
+    "Write a PostgreSQL SELECT query to answer the user's question. Pass the SQL as the `query` parameter. This validates the query is read-only and returns it formatted. Use this FIRST before check_sql and execute_sql.",
   inputSchema: z.object({
     query: z.string().min(1, "Query cannot be empty").max(5000),
     explanation: z
@@ -97,7 +97,7 @@ export const generateSqlTool = tool({
  */
 export const checkSqlTool = tool({
   description:
-    "Validate a SQL query is safe (read-only) before executing it. Returns safety check results.",
+    "Validate a SQL query is safe (read-only) before executing it. Call this AFTER generate_sql and BEFORE execute_sql. Returns safety check results.",
   inputSchema: z.object({
     query: z.string().min(1).max(5000),
   }),
@@ -150,7 +150,7 @@ export const checkSqlTool = tool({
 export const executeSqlTool = (getConnectionString: () => string) =>
   tool({
     description:
-      "Execute a SQL query against the database and return results. Only safe, read-only queries should be executed.",
+      "Execute a SQL query against the database and return results. Call this AFTER check_sql. Returns columns, rows, and row count. Only read-only queries are allowed.",
     inputSchema: z.object({
       query: z.string().min(1).max(5000),
     }),

@@ -22,7 +22,10 @@ export async function* runSchemaChat(
   },
 ): AsyncGenerator<AgentEvent> {
   const schemaContext = buildSchemaContext(schema);
-  const systemPrompt = SYSTEM_PROMPT.replace("{SCHEMA_CONTEXT}", schemaContext);
+  const totalSteps = MAX_RETRIES + 2;
+  const systemPrompt = SYSTEM_PROMPT
+    .replace("{SCHEMA_CONTEXT}", schemaContext)
+    .replace("{MAX_STEPS}", String(totalSteps));
 
   const model = llm(process.env.LLM_MODEL || "gpt-4o-mini");
 
