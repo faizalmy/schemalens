@@ -33,6 +33,11 @@ export async function* runSchemaChat(
 
   let reasoningAccumulator = "";
   let retryCount = 0;
+  let answerProduced = false;
+
+  // Collect tool results for forced summarization
+  const toolResults: { tool: string; output: Record<string, unknown> }[] = [];
+  const toolErrors: { tool: string; error: string }[] = [];
 
   try {
     const result = streamText({
@@ -51,7 +56,6 @@ export async function* runSchemaChat(
     for await (const event of result.fullStream) {
       switch (event.type) {
         case "text-delta": {
-          // Stream reasoning text character-by-character
           reasoningAccumulator += event.text;
           yield {
             type: "reasoning" as AgentEventType,
@@ -82,6 +86,8 @@ export async function* runSchemaChat(
             const errMsg = (output as { error: string }).error;
             retryCount++;
 
+            toolErrors.push({ tool: event.toolName, error: errMsg });
+
             yield {
               type: "tool_error" as AgentEventType,
               tool: event.toolName,
@@ -94,6 +100,11 @@ export async function* runSchemaChat(
               reason: errMsg,
             };
           } else {
+            toolResults.push({
+              tool: event.toolName,
+              output: (output || {}) as Record<string, unknown>,
+            });
+
             yield {
               type: "tool_result" as AgentEventType,
               tool: event.toolName,
@@ -115,26 +126,33 @@ export async function* runSchemaChat(
         }
 
         case "finish": {
-          // Stream complete — the full text across all steps is our answer
-          // Note: reasoning was already streamed as text-delta events above
           break;
         }
       }
     }
 
     // After the fullStream completes, get the complete text
-    // The SDK accumulates text across all steps into result.text
     const fullText = await result.text;
     if (fullText) {
+      answerProduced = true;
       yield {
         type: "answer" as AgentEventType,
         content: fullText,
       };
     } else if (reasoningAccumulator) {
-      // If no separate answer text, use accumulated reasoning as answer
+      answerProduced = true;
       yield {
         type: "answer" as AgentEventType,
         content: reasoningAccumulator,
+      };
+    }
+
+    // Force summarize if no answer was produced but we have tool results
+    if (!answerProduced && (toolResults.length > 0 || toolErrors.length > 0)) {
+      const summary = buildForcedSummary(query, toolResults, toolErrors);
+      yield {
+        type: "answer" as AgentEventType,
+        content: summary,
       };
     }
   } catch (err: unknown) {
@@ -144,4 +162,50 @@ export async function* runSchemaChat(
         err instanceof Error ? err.message : "An unexpected error occurred",
     };
   }
+}
+
+/**
+ * Build a summary from collected tool results when the LLM didn't produce final text.
+ */
+function buildForcedSummary(
+  query: string,
+  toolResults: { tool: string; output: Record<string, unknown> }[],
+  toolErrors: { tool: string; error: string }[],
+): string {
+  const lines: string[] = [];
+  lines.push(`**Query:** ${query}\n`);
+
+  if (toolErrors.length > 0) {
+    lines.push("**Errors encountered:**");
+    for (const e of toolErrors) {
+      lines.push(`- ${e.error}`);
+    }
+    lines.push("");
+  }
+
+  // Find execute_sql results with actual data
+  const dataResults = toolResults.filter(
+    (r) => r.tool === "execute_sql" && r.output && "rowCount" in r.output,
+  );
+
+  if (dataResults.length > 0) {
+    for (const r of dataResults) {
+      const rowCount = (r.output as { rowCount?: number }).rowCount ?? 0;
+      const columns = (r.output as { columns?: { name: string }[] }).columns ?? [];
+      const colNames = columns.map((c) => c.name).join(", ");
+
+      if (rowCount > 0) {
+        lines.push(`**Result:** ${rowCount} row(s) returned`);
+        if (colNames) lines.push(`Columns: ${colNames}`);
+      } else {
+        lines.push("**Result:** No rows returned.");
+      }
+    }
+  } else if (toolResults.length > 0) {
+    lines.push(`Ran ${toolResults.length} query/queries. See results above.`);
+  } else {
+    lines.push("No query results were obtained. Please try a different approach.");
+  }
+
+  return lines.join("\n");
 }
