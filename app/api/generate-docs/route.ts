@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { getSchema, updateAiDocs } from "@/lib/schema-store";
 import { generateTableDocs } from "@/lib/ai-docs";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { NextResponse } from "next/server";
 import type { ParsedSchema } from "@/lib/types";
 
@@ -9,6 +10,9 @@ export async function POST(request: Request) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const rateLimited = checkRateLimit(session.user.id, "generate-docs");
+  if (rateLimited) return rateLimited;
 
   const { schemaId } = await request.json();
   if (!schemaId) {

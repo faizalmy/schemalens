@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { getSchema, getConnectionString } from "@/lib/schema-store";
 import { decrypt } from "@/lib/encryption";
 import { runSchemaChat } from "@/lib/schema-chat/agent";
+import { checkRateLimit } from "@/lib/rate-limit";
 import type { ParsedSchema } from "@/lib/types";
 
 export async function POST(request: Request) {
@@ -12,6 +13,9 @@ export async function POST(request: Request) {
       headers: { "Content-Type": "application/json" },
     });
   }
+
+  const rateLimited = checkRateLimit(session.user.id, "schema-chat");
+  if (rateLimited) return rateLimited;
 
   const { schemaId, message, history } = await request.json();
   if (!schemaId || !message) {

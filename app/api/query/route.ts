@@ -1,12 +1,16 @@
 import { auth } from "@/lib/auth";
 import { getSchema, getConnectionString } from "@/lib/schema-store";
 import { decrypt } from "@/lib/encryption";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session?.user?.id)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const rateLimited = checkRateLimit(session.user.id, "query");
+  if (rateLimited) return rateLimited;
 
   const { schemaId, tableName, limit = 25 } = await request.json();
   if (!schemaId || !tableName) {
