@@ -1,10 +1,17 @@
+import type { PoolConfig } from "pg";
+
 /**
- * Normalize a PostgreSQL connection string.
- * - Neon requires SSL: auto-append sslmode=require if missing.
+ * Get Pool config for a user-provided connection string.
+ * Attempts SSL first (required by hosted providers like Neon, Supabase),
+ * falls back to non-SSL if the server doesn't support it.
  */
-export function normalizeConnectionString(connectionString: string): string {
-  if (connectionString.includes("neon.tech") && !connectionString.includes("sslmode=")) {
-    return connectionString + (connectionString.includes("?") ? "&sslmode=require" : "?sslmode=require");
-  }
-  return connectionString;
+export function getPoolConfig(connectionString: string): PoolConfig {
+  return {
+    connectionString,
+    max: 1,
+    connectionTimeoutMillis: 15000,
+    ssl: {
+      rejectUnauthorized: false,
+    },
+  };
 }

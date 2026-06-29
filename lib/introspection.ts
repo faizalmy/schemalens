@@ -1,10 +1,9 @@
 import { Pool } from "pg";
 import type { ParsedSchema, TableInfo, TableColumn, TableRelation } from "./types";
-import { normalizeConnectionString } from "./db-utils";
+import { getPoolConfig } from "./db-utils";
 
 export async function introspectDatabase(connectionString: string): Promise<ParsedSchema> {
-  connectionString = normalizeConnectionString(connectionString);
-  const pool = new Pool({ connectionString, max: 1, connectionTimeoutMillis: 15000 });
+  const pool = new Pool(getPoolConfig(connectionString));
 
   try {
     const [tables, relations] = await Promise.all([

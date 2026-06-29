@@ -1,7 +1,7 @@
 import { tool } from "ai";
 import { z } from "zod";
 import { Pool } from "pg";
-import { normalizeConnectionString } from "@/lib/db-utils";
+import { getPoolConfig } from "@/lib/db-utils";
 import type { ExecuteSqlOutput, CheckSqlOutput } from "./types";
 import { MAX_ROWS, QUERY_TIMEOUT_MS } from "./types";
 
@@ -167,7 +167,7 @@ export const executeSqlTool = (getConnectionString: () => string) =>
         }
 
         pool = new Pool({
-          connectionString: normalizeConnectionString(connectionString),
+          ...getPoolConfig(connectionString),
           max: 1,
           connectionTimeoutMillis: 5000,
           idleTimeoutMillis: 30000,
