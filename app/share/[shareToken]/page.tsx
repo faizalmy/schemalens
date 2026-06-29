@@ -8,8 +8,9 @@ interface Props {
 
 export default async function SharePage({ params }: Props) {
   const { shareToken } = await params
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-  const res = await fetch(`${baseUrl}/api/share/${shareToken}`, { cache: 'no-store' })
+
+  // Use relative URL — works on both localhost and Vercel
+  const res = await fetch(`/api/share/${shareToken}`, { cache: 'no-store' })
 
   if (!res.ok) notFound()
 
